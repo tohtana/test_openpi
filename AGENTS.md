@@ -14,6 +14,9 @@ This file provides guidance to Codex when working with code in this repository.
 
 ## Environment Setup
 
+For the repeatable Track A LeRobot/LIBERO rebuild procedure, see:
+- [ENV_SETUP_TRACK_A_LIBERO.md](ENV_SETUP_TRACK_A_LIBERO.md)
+
 ENV_NAME=<WRITE_HERE>
 
 Use the dedicated conda environment `${ENV_NAME}` for this workspace:

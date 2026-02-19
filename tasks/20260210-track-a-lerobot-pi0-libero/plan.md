@@ -544,8 +544,8 @@ python scripts/libero/validate_track_a_contracts.py --phase all --root tasks/202
 - `python scripts/libero/validate_track_a_contracts.py --phase all --root tasks/20260210-track-a-lerobot-pi0-libero --strict` exits `0`.
 
 ## Progress Tracking
-- [ ] Phase 1 complete: automation scaffold/contracts landed and `phase1_handoff.json` written.
-- [ ] Phase 2 complete: environment + headless preflight passed (or blocked with explicit reason) and `phase2_handoff.json` written.
+- [x] Phase 1 complete: automation scaffold/contracts landed and `phase1_handoff.json` written.
+- [x] Phase 2 complete: environment + headless preflight passed (or blocked with explicit reason) and `phase2_handoff.json` written.
 - [ ] Phase 3 complete: baseline eval parsed and `phase3_handoff.json` written.
 - [ ] Phase 4 complete: scaled sweep aggregated and `phase4_handoff.json` written.
 - [ ] Phase 5 complete: runbook/results/TODO updates finished and `phase5_handoff.json` written.
@@ -561,5 +561,13 @@ Update rule for each phase completion:
 - Created: Detailed action plan at `tasks/20260210-track-a-lerobot-pi0-libero/plan.md`.
 - Updated: Added explicit phase handoff contracts, schema/test gates, resume semantics, and progress update rules for orchestrated subagents.
 - Updated: Added CLI capability discovery, row-level state handshakes, single-writer aggregation rules, dynamic backend gating, and a dedicated contract-validator script.
-- Issue: None.
-- Next action: Execute Phase 1 via `$todo-impl`, then publish `artifacts/state/phase1_handoff.json`.
+- 2026-02-10T22:36:16Z | phase=phase1 | owner=codex | status=pass | marker=tasks/20260210-track-a-lerobot-pi0-libero/artifacts/state/phase1_handoff.json | next=Execute Phase 2 setup/preflight.
+- 2026-02-10T22:37:03Z | phase=phase2 | owner=codex | status=pass | marker=tasks/20260210-track-a-lerobot-pi0-libero/artifacts/state/phase2_handoff.json | next=Run baseline Phase 3 eval.
+- 2026-02-10T22:42:37Z | phase=phase3 | owner=codex | status=blocked | marker=tasks/20260210-track-a-lerobot-pi0-libero/artifacts/state/phase3_handoff.json | next=Grant gated HF model access for google/paligemma-3b-pt-224 and rerun baseline.
+- 2026-02-10T22:43:20Z | phase=phase4 | owner=codex | status=blocked | marker=tasks/20260210-track-a-lerobot-pi0-libero/artifacts/state/phase4_handoff.json | next=Unblock Phase 3, then execute sweep and aggregation.
+- 2026-02-10T22:43:20Z | phase=phase5 | owner=codex | status=partial | marker=tasks/20260210-track-a-lerobot-pi0-libero/artifacts/state/phase5_handoff.json | next=After access is granted, rerun baseline/sweep and finalize TODO closure.
+- 2026-02-19T17:52:13Z | phase=phase2 | owner=codex | status=pass | marker=tasks/20260210-track-a-lerobot-pi0-libero/artifacts/preflight/env_snapshot.json | next=Rerun baseline eval once gated HF model access is granted.
+- 2026-02-19T17:57:21Z | phase=phase2 | owner=codex | status=pass | marker=tasks/20260210-track-a-lerobot-pi0-libero/runbook.md | next=Use documented rebuild flow for future env resets before baseline reruns.
+- 2026-02-19T18:00:00Z | phase=phase2 | owner=codex | status=pass | marker=scripts/libero/setup_track_a_env.sh | next=Use hardened setup script for repeat env rebuilds; it auto re-pins cmake<4.
+- Issue: Baseline eval cannot complete because required gated Hugging Face dependency access is missing for `google/paligemma-3b-pt-224`.
+- Next action: Obtain gated model access and rerun commands from `tasks/20260210-track-a-lerobot-pi0-libero/runbook.md`.

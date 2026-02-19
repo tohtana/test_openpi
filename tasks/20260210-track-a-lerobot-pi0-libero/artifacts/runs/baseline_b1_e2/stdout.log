@@ -1,0 +1,21 @@
+Creating LIBERO envs | suites=['libero_object'] | n_envs(per task)=1 | init_states=True
+[info] using task orders [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+Local assets not found. Downloading from HuggingFace Hub...
+Assets already downloaded at /home/ray/.cache/libero/assets
+Built vec env | suite=libero_object | task_id=0 | n_envs=1
+Built vec env | suite=libero_object | task_id=1 | n_envs=1
+Built vec env | suite=libero_object | task_id=2 | n_envs=1
+Built vec env | suite=libero_object | task_id=3 | n_envs=1
+Built vec env | suite=libero_object | task_id=4 | n_envs=1
+Built vec env | suite=libero_object | task_id=5 | n_envs=1
+Built vec env | suite=libero_object | task_id=6 | n_envs=1
+Built vec env | suite=libero_object | task_id=7 | n_envs=1
+Built vec env | suite=libero_object | task_id=8 | n_envs=1
+Built vec env | suite=libero_object | task_id=9 | n_envs=1
+The PI0 model is a direct port of the OpenPI implementation. 
+This implementation follows the original OpenPI structure for compatibility. 
+Original implementation: https://github.com/Physical-Intelligence/openpi
+Loading model from: lerobot/pi0_libero_finetuned
+✓ Loaded state dict from model.safetensors
+Warning: Could not remap state dict keys: Error(s) in loading state_dict for PI0Policy:
+	Missing key(s) in state_dict: "model.paligemma_with_expert.paligemma.model.language_model.embed_tokens.weight". 

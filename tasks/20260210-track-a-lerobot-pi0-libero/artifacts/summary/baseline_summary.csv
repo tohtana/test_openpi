@@ -1,0 +1,3 @@
+run_id,task_suite,batch_size,n_episodes,gpu_id,success_rate,successes,failures,exit_code,status,stdout_log,stderr_log,video_path
+baseline_b1_e2,libero_object,1,2,0,,,,1,fail,tasks/20260210-track-a-lerobot-pi0-libero/artifacts/runs/baseline_b1_e2/stdout.log,tasks/20260210-track-a-lerobot-pi0-libero/artifacts/runs/baseline_b1_e2/stderr.log,
+dryrun,libero_object,1,2,0,,,,0,dry_run,tasks/20260210-track-a-lerobot-pi0-libero/artifacts/runs/dryrun/stdout.log,tasks/20260210-track-a-lerobot-pi0-libero/artifacts/runs/dryrun/stderr.log,

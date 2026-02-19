@@ -1,0 +1,20 @@
+{
+  "phase": "phase3",
+  "status": "blocked",
+  "generated_at_utc": "2026-02-10T22:45:26Z",
+  "git_commit": "0cb902c6ef54b493c4005fd22142ac37066e3eda",
+  "inputs": [
+    "tasks/20260210-track-a-lerobot-pi0-libero/artifacts/state/phase2_handoff.json",
+    "tasks/20260210-track-a-lerobot-pi0-libero/artifacts/preflight/preflight.json"
+  ],
+  "outputs": [
+    "tasks/20260210-track-a-lerobot-pi0-libero/artifacts/runs/baseline_b1_e2/run_manifest.json",
+    "tasks/20260210-track-a-lerobot-pi0-libero/artifacts/runs/baseline_b1_e2/stdout.log",
+    "tasks/20260210-track-a-lerobot-pi0-libero/artifacts/runs/baseline_b1_e2/stderr.log",
+    "tasks/20260210-track-a-lerobot-pi0-libero/artifacts/runs/baseline_b1_e2/result.json",
+    "tasks/20260210-track-a-lerobot-pi0-libero/artifacts/state/rows/baseline_b1_e2.json",
+    "tasks/20260210-track-a-lerobot-pi0-libero/artifacts/summary/baseline_summary.csv",
+    "tasks/20260210-track-a-lerobot-pi0-libero/artifacts/summary/baseline_summary.md"
+  ],
+  "notes": "baseline status=fail exit_code=1"
+}
