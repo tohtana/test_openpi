@@ -1,0 +1,25 @@
+warning: The `tool.uv.dev-dependencies` field (used in `packages/openpi-client/pyproject.toml`) is deprecated and will be removed in a future release; use `dependency-groups.dev` instead
+WARNING:root:
+The dataset you requested (physical-intelligence/libero) is in 2.0 format.
+While current version of LeRobot is backward-compatible with it, the version of your dataset still uses global
+stats instead of per-episode stats. Update your dataset stats to the new format using this command:
+```
+python lerobot/common/datasets/v21/convert_dataset_v20_to_v21.py --repo-id=physical-intelligence/libero
+```
+
+If you encounter a problem, contact LeRobot maintainers on [Discord](https://discord.com/invite/s3KuuzsPFb)
+or open an [issue on GitHub](https://github.com/huggingface/lerobot/issues/new/choose).
+
+WARNING:root:
+The dataset you requested (physical-intelligence/libero) is in 2.0 format.
+While current version of LeRobot is backward-compatible with it, the version of your dataset still uses global
+stats instead of per-episode stats. Update your dataset stats to the new format using this command:
+```
+python lerobot/common/datasets/v21/convert_dataset_v20_to_v21.py --repo-id=physical-intelligence/libero
+```
+
+If you encounter a problem, contact LeRobot maintainers on [Discord](https://discord.com/invite/s3KuuzsPFb)
+or open an [issue on GitHub](https://github.com/huggingface/lerobot/issues/new/choose).
+
+Computing stats:   0%|          | 0/32 [00:00<?, ?it/s]Computing stats:   3%|▎         | 1/32 [00:22<11:46, 22.78s/it]Computing stats:   6%|▋         | 2/32 [00:23<04:47,  9.60s/it]Computing stats:   9%|▉         | 3/32 [00:23<02:34,  5.32s/it]Computing stats:  12%|█▎        | 4/32 [00:24<01:38,  3.53s/it]Computing stats:  16%|█▌        | 5/32 [00:24<01:03,  2.35s/it]Computing stats:  19%|█▉        | 6/32 [00:28<01:14,  2.86s/it]Computing stats:  22%|██▏       | 7/32 [00:28<00:50,  2.03s/it]Computing stats:  25%|██▌       | 8/32 [00:32<01:02,  2.59s/it]Computing stats:  28%|██▊       | 9/32 [00:32<00:42,  1.85s/it]Computing stats:  31%|███▏      | 10/32 [00:36<00:54,  2.47s/it]Computing stats:  34%|███▍      | 11/32 [00:36<00:37,  1.78s/it]Computing stats:  38%|███▊      | 12/32 [00:40<00:47,  2.39s/it]Computing stats:  41%|████      | 13/32 [00:40<00:32,  1.73s/it]Computing stats:  44%|████▍     | 14/32 [00:44<00:43,  2.41s/it]Computing stats:  47%|████▋     | 15/32 [00:44<00:29,  1.75s/it]Computing stats:  50%|█████     | 16/32 [00:49<00:40,  2.54s/it]Computing stats:  56%|█████▋    | 18/32 [00:53<00:31,  2.28s/it]Computing stats:  62%|██████▎   | 20/32 [00:57<00:26,  2.19s/it]Computing stats:  69%|██████▉   | 22/32 [01:01<00:21,  2.14s/it]Computing stats:  75%|███████▌  | 24/32 [01:05<00:16,  2.09s/it]Computing stats:  81%|████████▏ | 26/32 [01:09<00:12,  2.07s/it]Computing stats:  88%|████████▊ | 28/32 [01:13<00:08,  2.08s/it]Computing stats:  94%|█████████▍| 30/32 [01:17<00:04,  2.08s/it]Computing stats: 100%|██████████| 32/32 [01:21<00:00,  2.07s/it]Computing stats: 100%|██████████| 32/32 [01:21<00:00,  2.56s/it]
+Writing stats to: /home/ray/default/test_openpi/openpi/assets/pi05_libero/physical-intelligence/libero
