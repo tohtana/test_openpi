@@ -134,6 +134,8 @@ ensure_dir "$STATUS_DIR"
 START_TS="$(timestamp_utc)"
 CWD_NOW="$(pwd)"
 GIT_COMMIT="$(resolve_git_commit)"
+LIBERO_CONFIG_PATH="${LIBERO_CONFIG_PATH:-$HOME/.libero}"
+export LIBERO_CONFIG_PATH
 
 CMD=(
   "lerobot-eval"
@@ -180,6 +182,7 @@ payload = {
         "MUJOCO_GL": mujoco_gl,
         "MUJOCO_EGL_DEVICE_ID": gpu_id,
         "HF_HOME": os.environ.get("HF_HOME", ""),
+        "LIBERO_CONFIG_PATH": os.environ.get("LIBERO_CONFIG_PATH", ""),
         "PYTHONUNBUFFERED": os.environ.get("PYTHONUNBUFFERED", ""),
         "TZ": os.environ.get("TZ", ""),
     },
@@ -274,13 +277,53 @@ export MUJOCO_GL
 export MUJOCO_EGL_DEVICE_ID="$GPU_ID"
 export PYTHONUNBUFFERED=1
 
+if [[ ! -f "$LIBERO_CONFIG_PATH/config.yaml" ]]; then
+  ensure_dir "$LIBERO_CONFIG_PATH"
+  LIBERO_BENCHMARK_ROOT="$(python - <<'PY'
+import glob
+import os
+import site
+
+candidates = []
+for p in site.getsitepackages():
+    candidates.extend(glob.glob(os.path.join(p, "libero", "libero")))
+user_site = site.getusersitepackages()
+candidates.extend(glob.glob(os.path.join(user_site, "libero", "libero")))
+candidates = [p for p in candidates if os.path.isdir(p)]
+print(candidates[0] if candidates else "")
+PY
+)"
+  [[ -n "$LIBERO_BENCHMARK_ROOT" ]] || fail "Could not locate installed LIBERO benchmark root" 3
+  cat >"$LIBERO_CONFIG_PATH/config.yaml" <<EOF
+benchmark_root: $LIBERO_BENCHMARK_ROOT
+bddl_files: $LIBERO_BENCHMARK_ROOT/bddl_files
+init_states: $LIBERO_BENCHMARK_ROOT/init_files
+datasets: $LIBERO_BENCHMARK_ROOT/../datasets
+assets: $LIBERO_BENCHMARK_ROOT/assets
+EOF
+fi
+
 START_EPOCH="$(date +%s)"
 EXIT_CODE=0
+USE_XVFB=0
+
+if [[ "$MUJOCO_GL" == "glx" && -z "${DISPLAY:-}" ]]; then
+  require_cmd xvfb-run
+  USE_XVFB=1
+fi
 
 if command -v timeout >/dev/null 2>&1; then
-  timeout --preserve-status "$TIMEOUT_SECS" "${CMD[@]}" >"$STDOUT_LOG" 2>"$STDERR_LOG" || EXIT_CODE=$?
+  if [[ "$USE_XVFB" -eq 1 ]]; then
+    timeout --preserve-status "$TIMEOUT_SECS" xvfb-run -a -s "-screen 0 1280x1024x24" "${CMD[@]}" >"$STDOUT_LOG" 2>"$STDERR_LOG" || EXIT_CODE=$?
+  else
+    timeout --preserve-status "$TIMEOUT_SECS" "${CMD[@]}" >"$STDOUT_LOG" 2>"$STDERR_LOG" || EXIT_CODE=$?
+  fi
 else
-  "${CMD[@]}" >"$STDOUT_LOG" 2>"$STDERR_LOG" || EXIT_CODE=$?
+  if [[ "$USE_XVFB" -eq 1 ]]; then
+    xvfb-run -a -s "-screen 0 1280x1024x24" "${CMD[@]}" >"$STDOUT_LOG" 2>"$STDERR_LOG" || EXIT_CODE=$?
+  else
+    "${CMD[@]}" >"$STDOUT_LOG" 2>"$STDERR_LOG" || EXIT_CODE=$?
+  fi
 fi
 
 END_EPOCH="$(date +%s)"
@@ -289,6 +332,7 @@ DURATION_SEC="$((END_EPOCH - START_EPOCH))"
 
 python - <<'PY' "$STDOUT_LOG" "$N_EPISODES" "$RESULT_JSON" "$RUN_ID" "$EXIT_CODE" "$END_TS" "$DURATION_SEC" "$STDOUT_LOG" "$STDERR_LOG"
 import json
+import ast
 import re
 import sys
 from pathlib import Path
@@ -326,6 +370,21 @@ if m_eps:
     episodes = int(m_eps.group(1))
 if episodes is None:
     episodes = int(n_episodes)
+
+m_overall = re.search(r"Overall Aggregated Metrics:\s*\n(\{.*?\})", text, re.S)
+if m_overall:
+    try:
+        overall = ast.literal_eval(m_overall.group(1))
+        if success_rate is None and "pc_success" in overall:
+            success_rate = float(overall["pc_success"]) / 100.0
+        if episodes is None and "n_episodes" in overall:
+            episodes = int(overall["n_episodes"])
+        if video_path is None:
+            video_paths = overall.get("video_paths")
+            if isinstance(video_paths, list) and video_paths:
+                video_path = str(video_paths[0])
+    except Exception:
+        pass
 
 if successes is None and success_rate is not None and episodes:
     successes = int(round(success_rate * episodes))

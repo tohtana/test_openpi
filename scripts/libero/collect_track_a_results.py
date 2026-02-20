@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import csv
 from dataclasses import asdict, dataclass
 import json
@@ -65,6 +66,19 @@ def parse_success_metrics(stdout_log: Path) -> tuple[int | None, int | None, flo
     if successes is None and success_rate is not None and episodes:
         successes = int(round(success_rate * episodes))
 
+    m = re.search(r"Overall Aggregated Metrics:\s*\n(\{.*?\})", text, re.S)
+    if m:
+        try:
+            overall = ast.literal_eval(m.group(1))
+            if success_rate is None and "pc_success" in overall:
+                success_rate = float(overall["pc_success"]) / 100.0
+            if episodes is None and "n_episodes" in overall:
+                episodes = int(overall["n_episodes"])
+            if successes is None and success_rate is not None and episodes:
+                successes = int(round(success_rate * episodes))
+        except Exception:
+            pass
+
     failures: int | None = None
     if successes is not None and episodes is not None:
         failures = max(0, episodes - successes)
@@ -122,12 +136,14 @@ def collect_results(runs_root: Path) -> list[EvalRunResult]:
         failures: int | None = None
         if successes is not None and episodes is not None:
             failures = max(0, episodes - successes)
-        elif parsed_failures is not None:
+        if parsed_failures is not None and (
+            failures is None or (episodes is not None and successes is not None and successes > episodes)
+        ):
             failures = parsed_failures
 
         video_path = result.get("video_path") if result else None
         if video_path is not None:
-            video_path = str(video_path)
+            video_path = str(video_path).replace("\r", " ").replace("\n", " ").strip()
 
         results.append(
             EvalRunResult(

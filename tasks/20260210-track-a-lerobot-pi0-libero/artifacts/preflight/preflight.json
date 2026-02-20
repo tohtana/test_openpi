@@ -2,7 +2,7 @@
   "backend_attempts": [
     {
       "backend": "egl",
-      "message": "[robosuite WARNING] No private macro file found! (__init__.py:7)\n[robosuite WARNING] It is recommended to use a private macro file (__init__.py:8)\n[robosuite WARNING] To setup, run: python /home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/robosuite/scripts/setup_macros.py (__init__.py:9)\nInitializing the default config file...\nThe following information is stored in the config file: /home/ray/.libero/config.yaml\nbenchmark_root: /home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/libero/libero\nbddl_files: /home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/libero/libero/./bddl_files\ninit_states: /home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/libero/libero/./init_files\ndatasets: /home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/libero/libero/../datasets\nassets: /home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/libero/libero/./assets\nok egl",
+      "message": "[robosuite WARNING] No private macro file found! (__init__.py:7)\n[robosuite WARNING] It is recommended to use a private macro file (__init__.py:8)\n[robosuite WARNING] To setup, run: python /home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/robosuite/scripts/setup_macros.py (__init__.py:9)\nok egl",
       "ok": true
     }
   ],
@@ -30,7 +30,7 @@
     "task_suite": "libero_object"
   },
   "display_env": "",
-  "generated_at_utc": "2026-02-10T22:38:04Z",
+  "generated_at_utc": "2026-02-19T18:53:50Z",
   "gpu_count": 8,
   "gpu_names": [
     "NVIDIA H100 80GB HBM3",

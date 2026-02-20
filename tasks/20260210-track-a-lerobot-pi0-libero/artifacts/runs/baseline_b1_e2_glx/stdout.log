@@ -1,0 +1,4 @@
+Creating LIBERO envs | suites=['libero_object'] | n_envs(per task)=1 | init_states=True
+[info] using task orders [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+Local assets not found. Downloading from HuggingFace Hub...
+Assets already downloaded at /home/ray/.cache/libero/assets

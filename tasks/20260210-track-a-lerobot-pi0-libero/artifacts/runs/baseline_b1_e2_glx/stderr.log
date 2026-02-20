@@ -1,0 +1,179 @@
+WARNING 2026-02-19 10:54:08 figs/eval.py:65 No job name provided, using 'libero_pi0' as job name.
+INFO 2026-02-19 10:54:08 bot_eval.py:507 {'env': {'camera_name': 'agentview_image,robot0_eye_in_hand_image',
+         'camera_name_mapping': None,
+         'control_mode': 'relative',
+         'disable_env_checker': True,
+         'episode_length': None,
+         'features': {'action': {'shape': (7,),
+                                 'type': <FeatureType.ACTION: 'ACTION'>},
+                      'pixels/agentview_image': {'shape': (360, 360, 3),
+                                                 'type': <FeatureType.VISUAL: 'VISUAL'>},
+                      'pixels/robot0_eye_in_hand_image': {'shape': (360,
+                                                                    360,
+                                                                    3),
+                                                          'type': <FeatureType.VISUAL: 'VISUAL'>},
+                      'robot_state/eef/mat': {'shape': (3, 3),
+                                              'type': <FeatureType.STATE: 'STATE'>},
+                      'robot_state/eef/pos': {'shape': (3,),
+                                              'type': <FeatureType.STATE: 'STATE'>},
+                      'robot_state/eef/quat': {'shape': (4,),
+                                               'type': <FeatureType.STATE: 'STATE'>},
+                      'robot_state/gripper/qpos': {'shape': (2,),
+                                                   'type': <FeatureType.STATE: 'STATE'>},
+                      'robot_state/gripper/qvel': {'shape': (2,),
+                                                   'type': <FeatureType.STATE: 'STATE'>},
+                      'robot_state/joints/pos': {'shape': (7,),
+                                                 'type': <FeatureType.STATE: 'STATE'>},
+                      'robot_state/joints/vel': {'shape': (7,),
+                                                 'type': <FeatureType.STATE: 'STATE'>}},
+         'features_map': {'action': 'action',
+                          'pixels/agentview_image': 'observation.images.image',
+                          'pixels/robot0_eye_in_hand_image': 'observation.images.image2',
+                          'robot_state/eef/mat': 'observation.state.eef_mat',
+                          'robot_state/eef/pos': 'observation.state.eef_pos',
+                          'robot_state/eef/quat': 'observation.state.eef_quat',
+                          'robot_state/gripper/qpos': 'observation.state.gripper_qpos',
+                          'robot_state/gripper/qvel': 'observation.state.gripper_qvel',
+                          'robot_state/joints/pos': 'observation.state.joint_pos',
+                          'robot_state/joints/vel': 'observation.state.joint_vel'},
+         'fps': 30,
+         'init_states': True,
+         'max_parallel_tasks': 1,
+         'obs_type': 'pixels_agent_pos',
+         'observation_height': 360,
+         'observation_width': 360,
+         'render_mode': 'rgb_array',
+         'task': 'libero_object',
+         'task_ids': None},
+ 'eval': {'batch_size': 1, 'n_episodes': 2, 'use_async_envs': False},
+ 'job_name': 'libero_pi0',
+ 'output_dir': PosixPath('outputs/eval/2026-02-19/10-54-08_libero_pi0'),
+ 'policy': {'action_expert_variant': 'gemma_300m',
+            'chunk_size': 50,
+            'compile_mode': 'max-autotune',
+            'compile_model': True,
+            'device': 'cuda',
+            'dtype': 'bfloat16',
+            'empty_cameras': 1,
+            'freeze_vision_encoder': False,
+            'gradient_checkpointing': True,
+            'image_resolution': (224, 224),
+            'input_features': {'observation.images.empty_camera_0': {'shape': (3,
+                                                                               224,
+                                                                               224),
+                                                                     'type': <FeatureType.VISUAL: 'VISUAL'>},
+                               'observation.images.image': {'shape': (3,
+                                                                      256,
+                                                                      256),
+                                                            'type': <FeatureType.VISUAL: 'VISUAL'>},
+                               'observation.images.image2': {'shape': (3,
+                                                                       256,
+                                                                       256),
+                                                             'type': <FeatureType.VISUAL: 'VISUAL'>},
+                               'observation.state': {'shape': (8,),
+                                                     'type': <FeatureType.STATE: 'STATE'>}},
+            'license': None,
+            'max_action_dim': 32,
+            'max_period': 4.0,
+            'max_state_dim': 32,
+            'min_period': 0.004,
+            'n_action_steps': 50,
+            'n_obs_steps': 1,
+            'normalization_mapping': {'ACTION': <NormalizationMode.MEAN_STD: 'MEAN_STD'>,
+                                      'STATE': <NormalizationMode.MEAN_STD: 'MEAN_STD'>,
+                                      'VISUAL': <NormalizationMode.IDENTITY: 'IDENTITY'>},
+            'num_inference_steps': 10,
+            'optimizer_betas': (0.9, 0.95),
+            'optimizer_eps': 1e-08,
+            'optimizer_grad_clip_norm': 1.0,
+            'optimizer_lr': 2.5e-05,
+            'optimizer_weight_decay': 0.01,
+            'output_features': {'action': {'shape': (7,),
+                                           'type': <FeatureType.ACTION: 'ACTION'>}},
+            'paligemma_variant': 'gemma_2b',
+            'pretrained_path': PosixPath('lerobot/pi0_libero_finetuned'),
+            'private': None,
+            'push_to_hub': True,
+            'repo_id': 'pepijn223/pi0_libero_finetuned_extra2',
+            'rtc_config': None,
+            'scheduler_decay_lr': 2.5e-06,
+            'scheduler_decay_steps': 10000,
+            'scheduler_warmup_steps': 1000,
+            'tags': None,
+            'time_sampling_beta_alpha': 1.5,
+            'time_sampling_beta_beta': 1.0,
+            'time_sampling_offset': 0.001,
+            'time_sampling_scale': 0.999,
+            'tokenizer_max_length': 48,
+            'train_expert_only': False,
+            'use_amp': False,
+            'use_peft': False},
+ 'rename_map': {},
+ 'seed': 7,
+ 'trust_remote_code': False}
+INFO 2026-02-19 10:54:08 bot_eval.py:516 Output dir: outputs/eval/2026-02-19/10-54-08_libero_pi0
+INFO 2026-02-19 10:54:08 bot_eval.py:518 Making environment.
+[robosuite WARNING] No private macro file found! (__init__.py:7)
+WARNING 2026-02-19 10:54:08 e/__init__.py:7 No private macro file found!
+[robosuite WARNING] It is recommended to use a private macro file (__init__.py:8)
+WARNING 2026-02-19 10:54:08 e/__init__.py:8 It is recommended to use a private macro file
+[robosuite WARNING] To setup, run: python /home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/robosuite/scripts/setup_macros.py (__init__.py:9)
+WARNING 2026-02-19 10:54:08 e/__init__.py:9 To setup, run: python /home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/robosuite/scripts/setup_macros.py
+/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/glfw/__init__.py:917: GLFWError: (65550) b'X11: The DISPLAY environment variable is missing'
+  warnings.warn(message, GLFWError)
+/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/glfw/__init__.py:917: GLFWError: (65537) b'The GLFW library is not initialized'
+  warnings.warn(message, GLFWError)
+Traceback (most recent call last):
+  File "/home/ray/anaconda3/envs/vla_pi0/bin/lerobot-eval", line 6, in <module>
+    sys.exit(main())
+  File "/mnt/local_storage/src/lerobot/src/lerobot/scripts/lerobot_eval.py", line 809, in main
+    eval_main()
+  File "/mnt/local_storage/src/lerobot/src/lerobot/configs/parser.py", line 233, in wrapper_inner
+    response = fn(cfg, *args, **kwargs)
+  File "/mnt/local_storage/src/lerobot/src/lerobot/scripts/lerobot_eval.py", line 519, in eval_main
+    envs = make_env(
+  File "/mnt/local_storage/src/lerobot/src/lerobot/envs/factory.py", line 174, in make_env
+    return create_libero_envs(
+  File "/mnt/local_storage/src/lerobot/src/lerobot/envs/libero.py", line 453, in create_libero_envs
+    out[suite_name][tid] = env_cls(fns)
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/gymnasium/vector/sync_vector_env.py", line 97, in __init__
+    self.envs = [env_fn() for env_fn in env_fns]
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/gymnasium/vector/sync_vector_env.py", line 97, in <listcomp>
+    self.envs = [env_fn() for env_fn in env_fns]
+  File "/mnt/local_storage/src/lerobot/src/lerobot/envs/libero.py", line 372, in _make_env
+    return LiberoEnv(
+  File "/mnt/local_storage/src/lerobot/src/lerobot/envs/libero.py", line 153, in __init__
+    self._env = self._make_envs_task(task_suite, self.task_id)
+  File "/mnt/local_storage/src/lerobot/src/lerobot/envs/libero.py", line 241, in _make_envs_task
+    env = OffScreenRenderEnv(**env_args)
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/libero/libero/envs/env_wrapper.py", line 161, in __init__
+    super().__init__(**kwargs)
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/libero/libero/envs/env_wrapper.py", line 56, in __init__
+    self.env = TASK_MAPPING[self.problem_name](
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/libero/libero/envs/problems/libero_floor_manipulation.py", line 37, in __init__
+    super().__init__(bddl_file_name, *args, **kwargs)
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/libero/libero/envs/bddl_base_domain.py", line 137, in __init__
+    super().__init__(
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/robosuite/environments/manipulation/manipulation_env.py", line 162, in __init__
+    super().__init__(
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/robosuite/environments/robot_env.py", line 214, in __init__
+    super().__init__(
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/robosuite/environments/base.py", line 143, in __init__
+    self._reset_internal()
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/libero/libero/envs/bddl_base_domain.py", line 737, in _reset_internal
+    super()._reset_internal()
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/robosuite/environments/robot_env.py", line 510, in _reset_internal
+    super()._reset_internal()
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/robosuite/environments/base.py", line 296, in _reset_internal
+    render_context = MjRenderContextOffscreen(self.sim, device_id=self.render_gpu_device_id)
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/robosuite/utils/binding_utils.py", line 210, in __init__
+    super().__init__(sim, offscreen=True, device_id=device_id, max_width=max_width, max_height=max_height)
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/robosuite/utils/binding_utils.py", line 109, in __init__
+    self._set_mujoco_context_and_buffers()
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/robosuite/utils/binding_utils.py", line 112, in _set_mujoco_context_and_buffers
+    self.con = mujoco.MjrContext(self.model._model, mujoco.mjtFontScale.mjFONTSCALE_150)
+mujoco.FatalError: gladLoadGL error
+Exception ignored in: <function MjRenderContext.__del__ at 0x70203178b130>
+Traceback (most recent call last):
+  File "/home/ray/anaconda3/envs/vla_pi0/lib/python3.10/site-packages/robosuite/utils/binding_utils.py", line 198, in __del__
+AttributeError: 'MjRenderContextOffscreen' object has no attribute 'con'

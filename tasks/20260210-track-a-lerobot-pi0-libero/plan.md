@@ -546,9 +546,9 @@ python scripts/libero/validate_track_a_contracts.py --phase all --root tasks/202
 ## Progress Tracking
 - [x] Phase 1 complete: automation scaffold/contracts landed and `phase1_handoff.json` written.
 - [x] Phase 2 complete: environment + headless preflight passed (or blocked with explicit reason) and `phase2_handoff.json` written.
-- [ ] Phase 3 complete: baseline eval parsed and `phase3_handoff.json` written.
-- [ ] Phase 4 complete: scaled sweep aggregated and `phase4_handoff.json` written.
-- [ ] Phase 5 complete: runbook/results/TODO updates finished and `phase5_handoff.json` written.
+- [x] Phase 3 complete: baseline eval parsed and `phase3_handoff.json` written.
+- [x] Phase 4 complete: scaled sweep aggregated and `phase4_handoff.json` written.
+- [x] Phase 5 complete: runbook/results/TODO updates finished and `phase5_handoff.json` written.
 
 Update rule for each phase completion:
 1. Check the corresponding box in this section.
@@ -569,5 +569,10 @@ Update rule for each phase completion:
 - 2026-02-19T17:52:13Z | phase=phase2 | owner=codex | status=pass | marker=tasks/20260210-track-a-lerobot-pi0-libero/artifacts/preflight/env_snapshot.json | next=Rerun baseline eval once gated HF model access is granted.
 - 2026-02-19T17:57:21Z | phase=phase2 | owner=codex | status=pass | marker=tasks/20260210-track-a-lerobot-pi0-libero/runbook.md | next=Use documented rebuild flow for future env resets before baseline reruns.
 - 2026-02-19T18:00:00Z | phase=phase2 | owner=codex | status=pass | marker=scripts/libero/setup_track_a_env.sh | next=Use hardened setup script for repeat env rebuilds; it auto re-pins cmake<4.
-- Issue: Baseline eval cannot complete because required gated Hugging Face dependency access is missing for `google/paligemma-3b-pt-224`.
-- Next action: Obtain gated model access and rerun commands from `tasks/20260210-track-a-lerobot-pi0-libero/runbook.md`.
+- 2026-02-19T18:52:57Z | phase=phase3 | owner=codex | status=partial | marker=tasks/20260210-track-a-lerobot-pi0-libero/artifacts/runs/baseline_b1_e2/stderr.log | next=Replace interactive LIBERO init with non-interactive config setup in wrappers.
+- 2026-02-19T18:56:05Z | phase=phase3 | owner=codex | status=partial | marker=tasks/20260210-track-a-lerobot-pi0-libero/artifacts/runs/baseline_b1_e2/stdout.log | next=Use glx+xvfb fallback and PI0-compatible transformers branch, then rerun baseline to completion.
+- 2026-02-19T19:11:00Z | phase=phase2 | owner=codex | status=pass | marker=scripts/libero/setup_track_a_env.sh | next=Rebuild envs with pinned PI0 transformers + LIBERO config bootstrap to avoid recurring setup failures.
+- 2026-02-19T19:20:00Z | phase=phase5 | owner=codex | status=partial | marker=tasks/20260210-track-a-lerobot-pi0-libero/results.md | next=Keep baseline/sweep pending, but preserve task-spec and eval dataflow documentation for handoff.
+- 2026-02-20T17:56:15Z | phase=phase3 | owner=codex | status=pass | marker=tasks/20260210-track-a-lerobot-pi0-libero/artifacts/runs/baseline_b1_e2/result.json | next=Execute Phase 4 sweep (`run_s1`..`run_s8`) and aggregate final summaries.
+- 2026-02-20T21:02:27Z | phase=phase4 | owner=codex | status=pass | marker=tasks/20260210-track-a-lerobot-pi0-libero/artifacts/state/phase4_handoff.json | next=Finalize Phase 5 docs/trackers and run full contract validation.
+- 2026-02-20T21:02:27Z | phase=phase5 | owner=codex | status=pass | marker=tasks/20260210-track-a-lerobot-pi0-libero/artifacts/state/phase5_handoff.json | next=None (completed).

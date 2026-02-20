@@ -9,7 +9,9 @@ Use this whenever `vla_pi0` is missing, broken, or you want a clean rebuild.
 - Creates/repairs conda env `vla_pi0` with Python 3.10.
 - Clones/uses LeRobot at `/mnt/local_storage/src/lerobot`.
 - Installs `lerobot[libero]` editable.
+- Installs PI0-compatible `transformers` from `huggingface/transformers@fix/lerobot_openpi`.
 - Avoids known `egl_probe` build issues by enforcing `cmake<4`.
+- Writes non-interactive LIBERO config at `${LIBERO_CONFIG_PATH:-~/.libero}/config.yaml`.
 - Writes setup artifacts under `tasks/20260210-track-a-lerobot-pi0-libero/artifacts/preflight/`.
 
 ## One-Time/Per-Rebuild Commands
@@ -39,6 +41,7 @@ nvidia-smi -L | tee tasks/20260210-track-a-lerobot-pi0-libero/artifacts/prefligh
 conda run -n vla_pi0 python -V
 conda run -n vla_pi0 python -m pip show lerobot
 conda run -n vla_pi0 cmake --version
+conda run -n vla_pi0 python -c "from transformers.models.siglip import check; print(check.check_whether_transformers_replace_is_installed_correctly())"
 ```
 
 Expected:
@@ -46,6 +49,7 @@ Expected:
 - `python -V` shows `3.10.x`.
 - `pip show lerobot` contains `Editable project location: /mnt/local_storage/src/lerobot`.
 - `cmake --version` shows major version `<4`.
+- `transformers` check prints `True`.
 - `nvidia_smi.txt` has 8 GPU lines.
 
 ## Artifacts Produced
@@ -71,4 +75,13 @@ bash scripts/libero/setup_track_a_env.sh \
   --artifacts-dir tasks/20260210-track-a-lerobot-pi0-libero/artifacts/preflight
 ```
 
-If baseline eval fails later with model-access errors, that is a separate blocker (gated HF repo access), not an env-creation failure.
+If baseline eval fails with PI0 transformer compatibility:
+
+```bash
+conda run -n vla_pi0 python -m pip install --upgrade \
+  "transformers @ git+https://github.com/huggingface/transformers.git@fix/lerobot_openpi"
+```
+
+If baseline eval fails with headless rendering:
+- `MUJOCO_GL=egl` may fail on this host (`Cannot initialize a EGL device display`).
+- Use `--mujoco-gl glx` with `scripts/libero/run_track_a_eval.sh`; it auto-wraps with `xvfb-run` when `DISPLAY` is unset.

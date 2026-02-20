@@ -5,23 +5,24 @@
   "env": {
     "CUDA_VISIBLE_DEVICES": "0",
     "HF_HOME": "/mnt/cluster_storage/hf_cache",
+    "LIBERO_CONFIG_PATH": "/home/ray/.libero",
     "MUJOCO_EGL_DEVICE_ID": "0",
-    "MUJOCO_GL": "egl",
+    "MUJOCO_GL": "glx",
     "PYTHONUNBUFFERED": "",
     "TZ": "America/Los_Angeles"
   },
-  "git_commit": "0cb902c6ef54b493c4005fd22142ac37066e3eda",
+  "git_commit": "dc90b6cacffc020182f8df4bb165e8dd260091b6",
   "gpu_id": 0,
-  "mujoco_gl": "egl",
+  "mujoco_gl": "glx",
   "n_episodes": 2,
   "policy_path": "lerobot/pi0_libero_finetuned",
   "retry_index": 0,
   "run_id": "baseline_b1_e2",
   "schema_version": "1",
   "seed": 7,
-  "start_time_utc": "2026-02-10T22:42:26Z",
+  "start_time_utc": "2026-02-20T17:44:17Z",
   "stderr_log": "tasks/20260210-track-a-lerobot-pi0-libero/artifacts/runs/baseline_b1_e2/stderr.log",
   "stdout_log": "tasks/20260210-track-a-lerobot-pi0-libero/artifacts/runs/baseline_b1_e2/stdout.log",
   "task_suite": "libero_object",
-  "timeout_secs": 1800
+  "timeout_secs": 2400
 }

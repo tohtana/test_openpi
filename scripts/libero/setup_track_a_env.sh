@@ -98,6 +98,9 @@ fi
 export HF_HOME
 export PYTHONUNBUFFERED=1
 export TZ=UTC
+LIBERO_CONFIG_PATH="${LIBERO_CONFIG_PATH:-$HOME/.libero}"
+export LIBERO_CONFIG_PATH
+PI0_TRANSFORMERS_SPEC="transformers @ git+https://github.com/huggingface/transformers.git@fix/lerobot_openpi"
 
 if [[ "$TOOLCHAIN" == "conda" ]]; then
   log "Using conda environment: $ENV_NAME"
@@ -112,6 +115,7 @@ if [[ "$TOOLCHAIN" == "conda" ]]; then
 
   conda run -n "$ENV_NAME" python -m pip install --upgrade pip wheel >>"$SETUP_LOG" 2>&1 || fail "Failed to upgrade pip" 4
   conda run -n "$ENV_NAME" python -m pip install -e "$LEROBOT_DIR[libero]" >>"$SETUP_LOG" 2>&1 || fail "Failed to install LeRobot with [libero] extras" 4
+  conda run -n "$ENV_NAME" python -m pip install --upgrade "$PI0_TRANSFORMERS_SPEC" >>"$SETUP_LOG" 2>&1 || fail "Failed to install PI0-compatible transformers branch" 4
   # Re-apply the pin in case dependency resolution upgraded cmake during install.
   conda run -n "$ENV_NAME" python -m pip uninstall -y cmake >>"$SETUP_LOG" 2>&1 || true
   conda install -y -n "$ENV_NAME" --force-reinstall "cmake<4" >>"$SETUP_LOG" 2>&1 || fail "Failed to re-pin cmake<4 after LeRobot install" 4
@@ -138,9 +142,36 @@ else
   "$VENV_PATH/bin/python" -m pip install --upgrade pip wheel >>"$SETUP_LOG" 2>&1 || fail "Failed to upgrade pip" 4
   "$VENV_PATH/bin/python" -m pip install "cmake<4" >>"$SETUP_LOG" 2>&1 || fail "Failed to install pinned cmake<4" 4
   "$VENV_PATH/bin/python" -m pip install -e "$LEROBOT_DIR[libero]" >>"$SETUP_LOG" 2>&1 || fail "Failed to install LeRobot with [libero] extras" 4
+  "$VENV_PATH/bin/python" -m pip install --upgrade "$PI0_TRANSFORMERS_SPEC" >>"$SETUP_LOG" 2>&1 || fail "Failed to install PI0-compatible transformers branch" 4
   "$VENV_PATH/bin/python" -m pip freeze >"$PIP_FREEZE" 2>>"$SETUP_LOG" || fail "Failed to capture pip freeze" 4
   PY_BIN="$VENV_PATH/bin/python"
 fi
+
+# Avoid LIBERO interactive first-run prompt by writing config.yaml up front.
+ensure_dir "$LIBERO_CONFIG_PATH"
+LIBERO_BENCHMARK_ROOT="$("$PY_BIN" - <<'PY'
+import glob
+import os
+import site
+
+candidates = []
+for p in site.getsitepackages():
+    candidates.extend(glob.glob(os.path.join(p, "libero", "libero")))
+user_site = site.getusersitepackages()
+candidates.extend(glob.glob(os.path.join(user_site, "libero", "libero")))
+candidates = [p for p in candidates if os.path.isdir(p)]
+print(candidates[0] if candidates else "")
+PY
+)"
+[[ -n "$LIBERO_BENCHMARK_ROOT" ]] || fail "Could not locate installed LIBERO benchmark root" 4
+
+cat >"$LIBERO_CONFIG_PATH/config.yaml" <<EOF
+benchmark_root: $LIBERO_BENCHMARK_ROOT
+bddl_files: $LIBERO_BENCHMARK_ROOT/bddl_files
+init_states: $LIBERO_BENCHMARK_ROOT/init_files
+datasets: $LIBERO_BENCHMARK_ROOT/../datasets
+assets: $LIBERO_BENCHMARK_ROOT/assets
+EOF
 
 python - <<'PY' "$ENV_SNAPSHOT" "$ENV_NAME" "$PYTHON_VERSION" "$LEROBOT_DIR" "$HF_HOME" "$TOOLCHAIN" "$PY_BIN"
 import json
@@ -175,6 +206,7 @@ payload = {
     "lerobot_dir": lerobot_dir,
     "lerobot_commit": cmd_output("git", "-C", lerobot_dir, "rev-parse", "HEAD"),
     "hf_home": hf_home,
+    "libero_config_path": os.environ.get("LIBERO_CONFIG_PATH", ""),
     "display_env": os.environ.get("DISPLAY", ""),
     "mujoco_gl": os.environ.get("MUJOCO_GL", ""),
     "tz": os.environ.get("TZ", ""),
