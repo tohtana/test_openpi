@@ -1,51 +1,110 @@
 ---
 name: todo-impl
-description: Implement TODO items created via todo-docs, updating todo/ plans with issues, progress, and next actions. Use when the user asks to implement a TODO item or references a todo/ plan.
+description: Implement a planned GitHub-tracked TODO, run verification, sync all artifacts to GitHub, and move to `todo:final-review`. GitHub mode only.
 user_invocable: true
 ---
 
-# TODO Implementation Workflow
+# TODO Impl Workflow
 
 ## When to use
-- User asks to implement a TODO item from `todo/TODO.md`
-- User references a plan under `todo/` and wants it executed
+- User asks to execute a TODO that is planned.
+- User asks to implement work tracked by `/todo-doc` + `/todo-plan`.
 
-## Workflow
-1. **Locate the TODO and plan**
-   - Find the relevant bullet in `todo/TODO.md`.
-   - Open the matching plan file in `todo/YYYYMMDD-<slug>.md`.
-   - Also check for a detailed action plan at `tasks/YYYYMMDD-<slug>/plan.md` (created by `$todo-action-plan`). If it exists, **prefer** it over the lightweight plan in `todo/` — it contains phased, agent-executable steps.
-2. **Align with docs**
-   - Read any relevant files under `docs/` to confirm expected behavior.
-3. **Implement the change**
-   - Update code to satisfy the TODO.
-   - Keep edits scoped to the plan and note any deviations.
-   - Place final results, reports, and other artifacts in `tasks/YYYYMMDD-<slug>/` (alongside the plan file).
-4. **Add tests when possible**
-   - Prefer adding or extending tests under the appropriate tests directory.
-   - If tests are not feasible, document why in the plan's **Issue** field.
-5. **Update the plan progress**
-   - Keep **Progress** entries accurate after each change:
-     - **Created**: what was implemented or updated
-     - **Issue**: current blockers or risks (use "None" if unblocked)
-     - **Next action**: what remains if not completed
-6. **Update TODO tracking**
-   - If completed, mark the TODO checkbox as done in `todo/TODO.md` by changing `- [ ]` to `- [x]`.
-   - If not completed, keep it unchecked and ensure the plan reflects current status.
-   - Always update the Progress section in both `todo/YYYYMMDD-<slug>.md` **and** `tasks/YYYYMMDD-<slug>/plan.md` (if the latter exists).
+## Non-negotiable rules
+- GitHub-only workflow; no filesystem fallback stages.
+- Do not finish this skill until **all artifacts** are mirrored to GitHub.
+- `todo-impl` ends at `todo:final-review`; do not mark completed here.
 
-## Progress update template
+## 1. Preflight (must run first)
+```bash
+gh --version >/dev/null
+gh auth status >/dev/null
+GH_REPO="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
 ```
-## Progress
-- Created: [what was implemented/updated]
-- Issue: [blocker or "None"]
-- Next action: [next concrete step if not completed]
+If preflight fails, stop and ask user to configure GitHub CLI, then rerun.
+
+## 2. Load metadata and verify prerequisites
+Read `todo/docs/${SLUG}/github.json`:
+```bash
+GH_REPO="$(jq -r .repo todo/docs/${SLUG}/github.json)"
+ISSUE_NUMBER="$(jq -r .issue_number todo/docs/${SLUG}/github.json)"
+TODO_TYPE="$(jq -r .type todo/docs/${SLUG}/github.json)"
 ```
 
-## Example completion note
+Required local docs:
+- `todo/docs/${SLUG}/${SLUG}-design.md`
+- `todo/docs/${SLUG}/${SLUG}-impl-plan.md`
+
+Required stage labels:
+- exactly one `todo:*`
+- exactly one `type:*`
+- stage is `todo:plan-ready` or `todo:in-progress` (resume)
+
+If stage is `todo:final-review`, skip to artifact sync validation/reporting.
+
+## 3. Move to `todo:in-progress`
+If currently `todo:plan-ready`, swap:
+```bash
+gh issue edit "$ISSUE_NUMBER" --repo "$GH_REPO" \
+  --remove-label "todo:plan-ready" --add-label "todo:in-progress"
 ```
-## Progress
-- Created: Added collocated transfer test and assertions for CUDA IPC path.
-- Issue: None.
-- Next action: None (completed).
+Re-verify label invariant.
+
+## 4. Implement according to plan
+- Read and follow `todo/docs/${SLUG}/${SLUG}-impl-plan.md`.
+- Keep implementation scoped to the plan.
+- If scope changes, document rationale in `results.md`.
+
+## 5. Run verification
+- Run the tests/checks defined in the plan.
+- Save a concise execution record in `todo/docs/${SLUG}/verification.md`.
+- If scripts were used for reproduction/verification, save them under `todo/docs/${SLUG}/` (for example `verify_*.py`, `verify_*.sh`).
+
+## 6. Write implementation results
+Create/update:
+- `todo/docs/${SLUG}/results.md`
+
+Minimum content:
+- summary of code changes
+- list of executed verification commands
+- pass/fail outcomes
+- open risks or `None`
+
+## 7. Sync **all artifacts** to GitHub issue (required)
+By the end of `/todo-impl`, ensure the issue includes all planning/implementation artifacts, including:
+- design doc
+- implementation plan
+- review comments summaries
+- verification scripts
+- verification execution notes
+- results summary
+
+Required sync actions:
+1. Upsert `<!-- managed:design-doc -->` with current design doc.
+2. Upsert `<!-- managed:impl-plan -->` with current impl plan.
+3. Upsert `<!-- managed:impl-artifacts -->` containing:
+   - artifact manifest (path + sha256)
+   - inline content of text artifacts under `todo/docs/${SLUG}/` (`.md`, `.txt`, `.json`, `.py`, `.sh`)
+
+If content exceeds comment size, split into ordered managed comments:
+- `<!-- managed:impl-artifacts:1 -->`
+- `<!-- managed:impl-artifacts:2 -->`
+- ...
+
+Persist all comment IDs to `github.json.comment_ids`.
+
+## 8. Move to `todo:final-review`
+If current stage is `todo:in-progress`, swap:
+```bash
+gh issue edit "$ISSUE_NUMBER" --repo "$GH_REPO" \
+  --remove-label "todo:in-progress" --add-label "todo:final-review"
 ```
+Verify exactly one `todo:*` label remains.
+
+## 9. Report
+Return:
+- issue URL
+- current stage (`todo:final-review`)
+- verification summary
+- explicit note that all artifacts are now synced on GitHub
+- next step: `/todo-complete <slug>`

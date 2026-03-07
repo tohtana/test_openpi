@@ -42,7 +42,7 @@ python plan_doc_review_cycle.py docs/my-design.md \
 
 The plan path is auto-derived by replacing `-design` with `-impl-plan` in the filename (e.g. `docs/foo-design.md` becomes `docs/foo-impl-plan.md`).
 
-### `todo_action_plan.py`
+### `todo_action_plan.py` (legacy utility)
 
 Creates and iteratively reviews a detailed **action plan** from a TODO item. Given a TODO slug (e.g. `20260208-qwen3-vl-throughput-bench`), reads the lightweight plan from `todo/<slug>.md` and generates a comprehensive, agent-executable plan at `tasks/<slug>/plan.md`.
 
@@ -60,7 +60,7 @@ python todo_action_plan.py 20260208-qwen3-vl-throughput-bench \
     --reviewer claude --reviewer cursor-opus
 ```
 
-Also available as a Claude Code skill: `/todo-action-plan`.
+This helper is legacy and not part of the current primary workflow. The canonical planning entrypoint is `/todo-plan`.
 
 ### `common.py`
 
