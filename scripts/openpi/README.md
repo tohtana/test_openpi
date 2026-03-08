@@ -41,3 +41,17 @@ Default PyTorch behavior:
 - runs a bounded `scripts/train_pytorch.py pi05_libero` example with `--batch-size 4 --num-train-steps 1`
 - writes logs and manifests under `tasks/openpi-scripted-libero-finetune-example-pytorch/<run-id>/`
 - writes checkpoints under `/mnt/local_storage/experiments/openpi_pytorch_checkpoints/pi05_libero/<exp-name>/`
+
+To capture a per-step timing breakdown during the PyTorch run:
+
+```bash
+scripts/openpi/run_pi05_libero_finetune_example_pytorch.sh \
+  --exp-name my_profile_run \
+  --num-train-steps 4 \
+  --log-interval 1 \
+  --enable-profiling \
+  --profiling-warmup-steps 1
+```
+
+The trainer logs averaged `data`, `host->device`, `preprocess`, `vision`, `llm`,
+`action`, `backward`, `optimizer`, `other`, and `total` timings in milliseconds.
