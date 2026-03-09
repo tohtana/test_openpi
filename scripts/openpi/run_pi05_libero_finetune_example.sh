@@ -154,14 +154,16 @@ mkdir -p "$RUN_DIR" "$CHECKPOINT_BASE_DIR"
 HF_HOME_VALUE="${OPENPI_HF_HOME:-/mnt/local_storage/huggingface}"
 HF_HUB_CACHE_VALUE="${OPENPI_HF_HUB_CACHE:-$HF_HOME_VALUE/hub}"
 XDG_CACHE_HOME_VALUE="${OPENPI_XDG_CACHE_HOME:-/mnt/local_storage/.cache}"
+OPENPI_DATA_HOME_VALUE="${OPENPI_DATA_HOME:-/mnt/local_storage/.cache/openpi}"
 XLA_MEM_FRACTION_VALUE="${OPENPI_XLA_PYTHON_CLIENT_MEM_FRACTION:-0.9}"
 
 export HF_HOME="$HF_HOME_VALUE"
 export HF_HUB_CACHE="$HF_HUB_CACHE_VALUE"
 export XDG_CACHE_HOME="$XDG_CACHE_HOME_VALUE"
+export OPENPI_DATA_HOME="$OPENPI_DATA_HOME_VALUE"
 export XLA_PYTHON_CLIENT_MEM_FRACTION="$XLA_MEM_FRACTION_VALUE"
 
-python - <<'PY' "$MANIFEST_JSON" "$RUN_ID" "$TEST_OPENPI_ROOT" "$OPENPI_DIR" "$CONFIG_NAME" "$EXP_NAME" "$MAX_FRAMES" "$NUM_TRAIN_STEPS" "$SAVE_INTERVAL" "$LOG_INTERVAL" "$CHECKPOINT_BASE_DIR" "$ARTIFACTS_ROOT" "$REFRESH_NORM_STATS" "$HF_HOME" "$HF_HUB_CACHE" "$XDG_CACHE_HOME" "$XLA_PYTHON_CLIENT_MEM_FRACTION"
+python - <<'PY' "$MANIFEST_JSON" "$RUN_ID" "$TEST_OPENPI_ROOT" "$OPENPI_DIR" "$CONFIG_NAME" "$EXP_NAME" "$MAX_FRAMES" "$NUM_TRAIN_STEPS" "$SAVE_INTERVAL" "$LOG_INTERVAL" "$CHECKPOINT_BASE_DIR" "$ARTIFACTS_ROOT" "$REFRESH_NORM_STATS" "$HF_HOME" "$HF_HUB_CACHE" "$XDG_CACHE_HOME" "$OPENPI_DATA_HOME" "$XLA_PYTHON_CLIENT_MEM_FRACTION"
 import json
 import sys
 
@@ -182,6 +184,7 @@ import sys
     hf_home,
     hf_hub_cache,
     xdg_cache_home,
+    openpi_data_home,
     xla_mem_fraction,
 ) = sys.argv[1:]
 
@@ -203,6 +206,7 @@ payload = {
         "HF_HOME": hf_home,
         "HF_HUB_CACHE": hf_hub_cache,
         "XDG_CACHE_HOME": xdg_cache_home,
+        "OPENPI_DATA_HOME": openpi_data_home,
         "XLA_PYTHON_CLIENT_MEM_FRACTION": xla_mem_fraction,
     },
 }

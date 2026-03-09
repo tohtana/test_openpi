@@ -21,7 +21,7 @@ Options:
                                   Default: 1
   --cuda-visible-devices <list>   CUDA_VISIBLE_DEVICES value. Default: 0
   --jax-checkpoint-dir <path>     JAX checkpoint root to convert.
-                                  Default: /home/ray/.cache/openpi/openpi-assets/checkpoints/pi05_base
+                                  Default: gs://openpi-assets/checkpoints/pi05_base
   --converted-weight-dir <path>   Output directory for converted PyTorch weights.
                                   Default: /mnt/local_storage/experiments/openpi_pytorch/pi05_base_for_libero_bfloat16
   --checkpoint-base-dir <path>    Base directory for PyTorch training checkpoints.
@@ -49,7 +49,7 @@ LOG_INTERVAL="1"
 ENABLE_PROFILING=0
 PROFILING_WARMUP_STEPS="1"
 CUDA_VISIBLE_DEVICES_VALUE="0"
-JAX_CHECKPOINT_DIR="/home/ray/.cache/openpi/openpi-assets/checkpoints/pi05_base"
+JAX_CHECKPOINT_DIR="gs://openpi-assets/checkpoints/pi05_base"
 CONVERTED_WEIGHT_DIR="/mnt/local_storage/experiments/openpi_pytorch/pi05_base_for_libero_bfloat16"
 CHECKPOINT_BASE_DIR="/mnt/local_storage/experiments/openpi_pytorch_checkpoints"
 ARTIFACTS_ROOT="$TEST_OPENPI_ROOT/tasks/openpi-scripted-libero-finetune-example-pytorch"
@@ -178,14 +178,16 @@ mkdir -p "$RUN_DIR" "$CHECKPOINT_BASE_DIR"
 HF_HOME_VALUE="${OPENPI_HF_HOME:-/mnt/local_storage/huggingface}"
 HF_HUB_CACHE_VALUE="${OPENPI_HF_HUB_CACHE:-$HF_HOME_VALUE/hub}"
 XDG_CACHE_HOME_VALUE="${OPENPI_XDG_CACHE_HOME:-/mnt/local_storage/.cache}"
+OPENPI_DATA_HOME_VALUE="${OPENPI_DATA_HOME:-/mnt/local_storage/.cache/openpi}"
 PYTORCH_CUDA_ALLOC_CONF_VALUE="${OPENPI_PYTORCH_CUDA_ALLOC_CONF:-max_split_size_mb:128,expandable_segments:True}"
 
 export HF_HOME="$HF_HOME_VALUE"
 export HF_HUB_CACHE="$HF_HUB_CACHE_VALUE"
 export XDG_CACHE_HOME="$XDG_CACHE_HOME_VALUE"
+export OPENPI_DATA_HOME="$OPENPI_DATA_HOME_VALUE"
 export PYTORCH_CUDA_ALLOC_CONF="$PYTORCH_CUDA_ALLOC_CONF_VALUE"
 
-python - <<'PY' "$MANIFEST_JSON" "$RUN_ID" "$TEST_OPENPI_ROOT" "$OPENPI_DIR" "$CONFIG_NAME" "$EXP_NAME" "$BATCH_SIZE" "$NUM_TRAIN_STEPS" "$SAVE_INTERVAL" "$LOG_INTERVAL" "$ENABLE_PROFILING" "$PROFILING_WARMUP_STEPS" "$CUDA_VISIBLE_DEVICES_VALUE" "$JAX_CHECKPOINT_DIR" "$CONVERTED_WEIGHT_DIR" "$CHECKPOINT_BASE_DIR" "$ARTIFACTS_ROOT" "$RECONVERT_WEIGHTS" "$HF_HOME" "$HF_HUB_CACHE" "$XDG_CACHE_HOME" "$PYTORCH_CUDA_ALLOC_CONF"
+python - <<'PY' "$MANIFEST_JSON" "$RUN_ID" "$TEST_OPENPI_ROOT" "$OPENPI_DIR" "$CONFIG_NAME" "$EXP_NAME" "$BATCH_SIZE" "$NUM_TRAIN_STEPS" "$SAVE_INTERVAL" "$LOG_INTERVAL" "$ENABLE_PROFILING" "$PROFILING_WARMUP_STEPS" "$CUDA_VISIBLE_DEVICES_VALUE" "$JAX_CHECKPOINT_DIR" "$CONVERTED_WEIGHT_DIR" "$CHECKPOINT_BASE_DIR" "$ARTIFACTS_ROOT" "$RECONVERT_WEIGHTS" "$HF_HOME" "$HF_HUB_CACHE" "$XDG_CACHE_HOME" "$OPENPI_DATA_HOME" "$PYTORCH_CUDA_ALLOC_CONF"
 import json
 import sys
 
@@ -211,6 +213,7 @@ import sys
     hf_home,
     hf_hub_cache,
     xdg_cache_home,
+    openpi_data_home,
     pytorch_cuda_alloc_conf,
 ) = sys.argv[1:]
 
@@ -237,6 +240,7 @@ payload = {
         "HF_HOME": hf_home,
         "HF_HUB_CACHE": hf_hub_cache,
         "XDG_CACHE_HOME": xdg_cache_home,
+        "OPENPI_DATA_HOME": openpi_data_home,
         "PYTORCH_CUDA_ALLOC_CONF": pytorch_cuda_alloc_conf,
     },
 }
@@ -259,6 +263,46 @@ run_in_openpi() {
     printf '\n'
     "$@"
   ) 2>&1 | tee "$log_file"
+}
+
+normalize_checkpoint_root() {
+  local checkpoint_root="${1%/}"
+  if [[ "$checkpoint_root" == */params ]]; then
+    checkpoint_root="${checkpoint_root%/params}"
+  fi
+  printf '%s\n' "$checkpoint_root"
+}
+
+resolve_jax_checkpoint_dir() {
+  local checkpoint_root
+  checkpoint_root="$(normalize_checkpoint_root "$JAX_CHECKPOINT_DIR")"
+
+  if [[ "$checkpoint_root" == *"://"* ]]; then
+    printf 'Resolving JAX checkpoint root via OpenPI downloader: %s\n' "$checkpoint_root" | tee -a "$CONVERT_LOG"
+    RESOLVED_JAX_CHECKPOINT_DIR="$(
+      cd "$OPENPI_DIR"
+      uv run python - <<'PY' "$checkpoint_root"
+from openpi.shared import download
+import sys
+
+print(download.maybe_download(sys.argv[1]))
+PY
+    )"
+    RESOLVED_JAX_CHECKPOINT_DIR="$(printf '%s\n' "$RESOLVED_JAX_CHECKPOINT_DIR" | tail -n 1)"
+  elif [[ -d "$checkpoint_root" ]]; then
+    RESOLVED_JAX_CHECKPOINT_DIR="$(realpath "$checkpoint_root")"
+  else
+    echo "JAX checkpoint root not found: $checkpoint_root" >&2
+    exit 1
+  fi
+
+  printf 'Using JAX checkpoint root: %s\n' "$RESOLVED_JAX_CHECKPOINT_DIR" | tee -a "$CONVERT_LOG"
+
+  if [[ ! -f "$RESOLVED_JAX_CHECKPOINT_DIR/params/_METADATA" ]]; then
+    echo "Resolved JAX checkpoint is missing params/_METADATA: $RESOLVED_JAX_CHECKPOINT_DIR" >&2
+    echo "Pass a checkpoint root that contains a params/ Orbax tree, or use the default gs://openpi-assets/checkpoints/pi05_base source." >&2
+    exit 1
+  fi
 }
 
 ensure_patched_transformers() {
@@ -286,9 +330,10 @@ ensure_converted_weights() {
     return
   fi
 
+  resolve_jax_checkpoint_dir
   mkdir -p "$CONVERTED_WEIGHT_DIR"
   run_in_openpi "$CONVERT_LOG" uv run examples/convert_jax_model_to_pytorch.py \
-    --checkpoint-dir "$JAX_CHECKPOINT_DIR" \
+    --checkpoint-dir "$RESOLVED_JAX_CHECKPOINT_DIR" \
     --config-name "$CONFIG_NAME" \
     --output-path "$CONVERTED_WEIGHT_DIR" \
     --precision bfloat16
@@ -334,6 +379,7 @@ fi
     HF_HOME="$HF_HOME" \
     HF_HUB_CACHE="$HF_HUB_CACHE" \
     XDG_CACHE_HOME="$XDG_CACHE_HOME" \
+    OPENPI_DATA_HOME="$OPENPI_DATA_HOME" \
     PYTORCH_CUDA_ALLOC_CONF="$PYTORCH_CUDA_ALLOC_CONF" \
     uv run scripts/train_pytorch.py "${TRAIN_ARGS[@]}"
   printf '\n'
@@ -342,6 +388,7 @@ fi
     HF_HOME="$HF_HOME" \
     HF_HUB_CACHE="$HF_HUB_CACHE" \
     XDG_CACHE_HOME="$XDG_CACHE_HOME" \
+    OPENPI_DATA_HOME="$OPENPI_DATA_HOME" \
     PYTORCH_CUDA_ALLOC_CONF="$PYTORCH_CUDA_ALLOC_CONF" \
     uv run scripts/train_pytorch.py "${TRAIN_ARGS[@]}"
 ) 2>&1 | tee "$TRAIN_LOG"
