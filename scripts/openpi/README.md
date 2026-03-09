@@ -15,6 +15,7 @@ Default behavior:
 - runs a bounded training example with `--num-train-steps 1`
 - writes logs and manifests under `tasks/openpi-scripted-libero-finetune-example/runs/<run-id>/`
 - writes checkpoints under `/mnt/local_storage/experiments/openpi_checkpoints/pi05_libero/<exp-name>/`
+- sets `OPENPI_DATA_HOME=/mnt/local_storage/.cache/openpi` by default so OpenPI-downloaded weights and assets stay on local storage
 
 To force a fresh bounded norm-stats pass before training:
 
@@ -37,7 +38,8 @@ scripts/openpi/run_pi05_libero_finetune_example_pytorch.sh --exp-name my_run
 Default PyTorch behavior:
 
 - ensures the local `.venv` has OpenPI's patched `transformers` files without reusing hardlinked cache files
-- converts the cached JAX `pi05_base` checkpoint to a PyTorch checkpoint if needed
+- resolves `gs://openpi-assets/checkpoints/pi05_base` through OpenPI's downloader and converts it to a PyTorch checkpoint if needed
 - runs a bounded `scripts/train_pytorch.py pi05_libero` example with `--batch-size 4 --num-train-steps 1`
 - writes logs and manifests under `tasks/openpi-scripted-libero-finetune-example-pytorch/<run-id>/`
 - writes checkpoints under `/mnt/local_storage/experiments/openpi_pytorch_checkpoints/pi05_libero/<exp-name>/`
+- sets `OPENPI_DATA_HOME=/mnt/local_storage/.cache/openpi` by default so OpenPI-downloaded weights and assets stay on local storage
