@@ -16,6 +16,9 @@ Options:
   --num-train-steps <int>         Number of training steps to run. Default: 1
   --save-interval <int>           Checkpoint save interval. Default: 1
   --log-interval <int>            Train log interval. Default: 1
+  --enable-profiling              Enable per-step timing breakdown in train_pytorch.py.
+  --profiling-warmup-steps <int>  Skip this many initial steps before collecting timings.
+                                  Default: 1
   --vision-encoder-image-mode <mode>
                                   Vision path: iterative or packed. Default: iterative
   --cuda-visible-devices <list>   CUDA_VISIBLE_DEVICES value. Default: 0
@@ -45,6 +48,8 @@ BATCH_SIZE="4"
 NUM_TRAIN_STEPS="1"
 SAVE_INTERVAL="1"
 LOG_INTERVAL="1"
+ENABLE_PROFILING=0
+PROFILING_WARMUP_STEPS="1"
 VISION_ENCODER_IMAGE_MODE="iterative"
 CUDA_VISIBLE_DEVICES_VALUE="0"
 JAX_CHECKPOINT_DIR="gs://openpi-assets/checkpoints/pi05_base"
@@ -79,6 +84,14 @@ while [[ "$#" -gt 0 ]]; do
       ;;
     --log-interval)
       LOG_INTERVAL="${2:-}"
+      shift 2
+      ;;
+    --enable-profiling)
+      ENABLE_PROFILING=1
+      shift
+      ;;
+    --profiling-warmup-steps)
+      PROFILING_WARMUP_STEPS="${2:-}"
       shift 2
       ;;
     --vision-encoder-image-mode)
@@ -143,7 +156,7 @@ command -v uv >/dev/null || {
   exit 1
 }
 
-if ! [[ "$BATCH_SIZE" =~ ^[0-9]+$ && "$NUM_TRAIN_STEPS" =~ ^[0-9]+$ && "$SAVE_INTERVAL" =~ ^[0-9]+$ && "$LOG_INTERVAL" =~ ^[0-9]+$ ]]; then
+if ! [[ "$BATCH_SIZE" =~ ^[0-9]+$ && "$NUM_TRAIN_STEPS" =~ ^[0-9]+$ && "$SAVE_INTERVAL" =~ ^[0-9]+$ && "$LOG_INTERVAL" =~ ^[0-9]+$ && "$PROFILING_WARMUP_STEPS" =~ ^[0-9]+$ ]]; then
   echo "Numeric arguments must be non-negative integers" >&2
   exit 2
 fi
@@ -186,7 +199,7 @@ export XDG_CACHE_HOME="$XDG_CACHE_HOME_VALUE"
 export OPENPI_DATA_HOME="$OPENPI_DATA_HOME_VALUE"
 export PYTORCH_CUDA_ALLOC_CONF="$PYTORCH_CUDA_ALLOC_CONF_VALUE"
 
-python - <<'PY' "$MANIFEST_JSON" "$RUN_ID" "$TEST_OPENPI_ROOT" "$OPENPI_DIR" "$CONFIG_NAME" "$EXP_NAME" "$BATCH_SIZE" "$NUM_TRAIN_STEPS" "$SAVE_INTERVAL" "$LOG_INTERVAL" "$VISION_ENCODER_IMAGE_MODE" "$CUDA_VISIBLE_DEVICES_VALUE" "$JAX_CHECKPOINT_DIR" "$CONVERTED_WEIGHT_DIR" "$CHECKPOINT_BASE_DIR" "$ARTIFACTS_ROOT" "$RECONVERT_WEIGHTS" "$HF_HOME" "$HF_HUB_CACHE" "$XDG_CACHE_HOME" "$OPENPI_DATA_HOME" "$PYTORCH_CUDA_ALLOC_CONF"
+python - <<'PY' "$MANIFEST_JSON" "$RUN_ID" "$TEST_OPENPI_ROOT" "$OPENPI_DIR" "$CONFIG_NAME" "$EXP_NAME" "$BATCH_SIZE" "$NUM_TRAIN_STEPS" "$SAVE_INTERVAL" "$LOG_INTERVAL" "$ENABLE_PROFILING" "$PROFILING_WARMUP_STEPS" "$VISION_ENCODER_IMAGE_MODE" "$CUDA_VISIBLE_DEVICES_VALUE" "$JAX_CHECKPOINT_DIR" "$CONVERTED_WEIGHT_DIR" "$CHECKPOINT_BASE_DIR" "$ARTIFACTS_ROOT" "$RECONVERT_WEIGHTS" "$HF_HOME" "$HF_HUB_CACHE" "$XDG_CACHE_HOME" "$OPENPI_DATA_HOME" "$PYTORCH_CUDA_ALLOC_CONF"
 import json
 import sys
 
@@ -201,6 +214,8 @@ import sys
     num_train_steps,
     save_interval,
     log_interval,
+    enable_profiling,
+    profiling_warmup_steps,
     vision_encoder_image_mode,
     cuda_visible_devices,
     jax_checkpoint_dir,
@@ -226,6 +241,8 @@ payload = {
     "num_train_steps": int(num_train_steps),
     "save_interval": int(save_interval),
     "log_interval": int(log_interval),
+    "enable_profiling": enable_profiling == "1",
+    "profiling_warmup_steps": int(profiling_warmup_steps),
     "vision_encoder_image_mode": vision_encoder_image_mode,
     "cuda_visible_devices": cuda_visible_devices,
     "jax_checkpoint_dir": jax_checkpoint_dir,
@@ -351,6 +368,24 @@ print_section "Ensuring converted PyTorch weights"
 ensure_converted_weights
 
 print_section "Launching bounded PyTorch training"
+TRAIN_ARGS=(
+  "$CONFIG_NAME"
+  --exp-name "$EXP_NAME"
+  --pytorch-weight-path "$CONVERTED_WEIGHT_DIR"
+  --batch-size "$BATCH_SIZE"
+  --num-train-steps "$NUM_TRAIN_STEPS"
+  --save-interval "$SAVE_INTERVAL"
+  --log-interval "$LOG_INTERVAL"
+  --model.vision-encoder-image-mode "$VISION_ENCODER_IMAGE_MODE"
+  --checkpoint-base-dir "$CHECKPOINT_BASE_DIR"
+  --no-wandb-enabled
+  --overwrite
+)
+
+if (( ENABLE_PROFILING )); then
+  TRAIN_ARGS+=(--enable-profiling --profiling-warmup-steps "$PROFILING_WARMUP_STEPS")
+fi
+
 (
   cd "$OPENPI_DIR"
   printf '$'
@@ -361,16 +396,7 @@ print_section "Launching bounded PyTorch training"
     XDG_CACHE_HOME="$XDG_CACHE_HOME" \
     OPENPI_DATA_HOME="$OPENPI_DATA_HOME" \
     PYTORCH_CUDA_ALLOC_CONF="$PYTORCH_CUDA_ALLOC_CONF" \
-    uv run scripts/train_pytorch.py "$CONFIG_NAME" \
-    --exp-name "$EXP_NAME" \
-    --pytorch-weight-path "$CONVERTED_WEIGHT_DIR" \
-    --batch-size "$BATCH_SIZE" \
-    --num-train-steps "$NUM_TRAIN_STEPS" \
-    --save-interval "$SAVE_INTERVAL" \
-    --log-interval "$LOG_INTERVAL" \
-    --checkpoint-base-dir "$CHECKPOINT_BASE_DIR" \
-    --no-wandb-enabled \
-    --overwrite
+    uv run scripts/train_pytorch.py "${TRAIN_ARGS[@]}"
   printf '\n'
   env \
     CUDA_VISIBLE_DEVICES="$CUDA_VISIBLE_DEVICES_VALUE" \
@@ -379,22 +405,12 @@ print_section "Launching bounded PyTorch training"
     XDG_CACHE_HOME="$XDG_CACHE_HOME" \
     OPENPI_DATA_HOME="$OPENPI_DATA_HOME" \
     PYTORCH_CUDA_ALLOC_CONF="$PYTORCH_CUDA_ALLOC_CONF" \
-    uv run scripts/train_pytorch.py "$CONFIG_NAME" \
-      --exp-name "$EXP_NAME" \
-      --pytorch-weight-path "$CONVERTED_WEIGHT_DIR" \
-      --batch-size "$BATCH_SIZE" \
-      --num-train-steps "$NUM_TRAIN_STEPS" \
-      --save-interval "$SAVE_INTERVAL" \
-      --log-interval "$LOG_INTERVAL" \
-      --model.vision-encoder-image-mode "$VISION_ENCODER_IMAGE_MODE" \
-      --checkpoint-base-dir "$CHECKPOINT_BASE_DIR" \
-      --no-wandb-enabled \
-      --overwrite
+    uv run scripts/train_pytorch.py "${TRAIN_ARGS[@]}"
 ) 2>&1 | tee "$TRAIN_LOG"
 
 LATEST_CHECKPOINT_DIR="$(find "$CHECKPOINT_RUN_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -n 1 || true)"
 
-python - <<'PY' "$RESULT_JSON" "$NORM_STATS_FILE" "$PATCH_LOG" "$CONVERT_LOG" "$TRAIN_LOG" "$CONVERTED_WEIGHT_DIR" "$CHECKPOINT_RUN_DIR" "$LATEST_CHECKPOINT_DIR" "$VISION_ENCODER_IMAGE_MODE"
+python - <<'PY' "$RESULT_JSON" "$NORM_STATS_FILE" "$PATCH_LOG" "$CONVERT_LOG" "$TRAIN_LOG" "$CONVERTED_WEIGHT_DIR" "$CHECKPOINT_RUN_DIR" "$LATEST_CHECKPOINT_DIR" "$ENABLE_PROFILING" "$PROFILING_WARMUP_STEPS" "$VISION_ENCODER_IMAGE_MODE"
 import json
 import os
 import sys
@@ -408,6 +424,8 @@ import sys
     converted_weight_dir,
     checkpoint_run_dir,
     latest_checkpoint_dir,
+    enable_profiling,
+    profiling_warmup_steps,
     vision_encoder_image_mode,
 ) = sys.argv[1:]
 
@@ -418,6 +436,8 @@ payload = {
     "patch_log": patch_log,
     "convert_log": convert_log,
     "train_log": train_log,
+    "enable_profiling": enable_profiling == "1",
+    "profiling_warmup_steps": int(profiling_warmup_steps),
     "vision_encoder_image_mode": vision_encoder_image_mode,
     "converted_weight_dir": converted_weight_dir,
     "converted_weight_exists": os.path.exists(os.path.join(converted_weight_dir, "model.safetensors")),
