@@ -16,6 +16,8 @@ Options:
   --num-train-steps <int>         Number of training steps to run. Default: 1
   --save-interval <int>           Checkpoint save interval. Default: 1
   --log-interval <int>            Train log interval. Default: 1
+  --vision-encoder-image-mode <mode>
+                                  Vision path: iterative or packed. Default: iterative
   --cuda-visible-devices <list>   CUDA_VISIBLE_DEVICES value. Default: 0
   --jax-checkpoint-dir <path>     JAX checkpoint root to convert.
                                   Default: gs://openpi-assets/checkpoints/pi05_base
@@ -43,6 +45,7 @@ BATCH_SIZE="4"
 NUM_TRAIN_STEPS="1"
 SAVE_INTERVAL="1"
 LOG_INTERVAL="1"
+VISION_ENCODER_IMAGE_MODE="iterative"
 CUDA_VISIBLE_DEVICES_VALUE="0"
 JAX_CHECKPOINT_DIR="gs://openpi-assets/checkpoints/pi05_base"
 CONVERTED_WEIGHT_DIR="/mnt/local_storage/experiments/openpi_pytorch/pi05_base_for_libero_bfloat16"
@@ -76,6 +79,10 @@ while [[ "$#" -gt 0 ]]; do
       ;;
     --log-interval)
       LOG_INTERVAL="${2:-}"
+      shift 2
+      ;;
+    --vision-encoder-image-mode)
+      VISION_ENCODER_IMAGE_MODE="${2:-}"
       shift 2
       ;;
     --cuda-visible-devices)
@@ -146,6 +153,11 @@ if (( BATCH_SIZE < 1 || NUM_TRAIN_STEPS < 1 )); then
   exit 2
 fi
 
+if [[ "$VISION_ENCODER_IMAGE_MODE" != "iterative" && "$VISION_ENCODER_IMAGE_MODE" != "packed" ]]; then
+  echo "--vision-encoder-image-mode must be either 'iterative' or 'packed'" >&2
+  exit 2
+fi
+
 RUN_DIR="$ARTIFACTS_ROOT/$RUN_ID"
 PATCH_LOG="$RUN_DIR/patch_transformers.log"
 CONVERT_LOG="$RUN_DIR/convert_checkpoint.log"
@@ -174,7 +186,7 @@ export XDG_CACHE_HOME="$XDG_CACHE_HOME_VALUE"
 export OPENPI_DATA_HOME="$OPENPI_DATA_HOME_VALUE"
 export PYTORCH_CUDA_ALLOC_CONF="$PYTORCH_CUDA_ALLOC_CONF_VALUE"
 
-python - <<'PY' "$MANIFEST_JSON" "$RUN_ID" "$TEST_OPENPI_ROOT" "$OPENPI_DIR" "$CONFIG_NAME" "$EXP_NAME" "$BATCH_SIZE" "$NUM_TRAIN_STEPS" "$SAVE_INTERVAL" "$LOG_INTERVAL" "$CUDA_VISIBLE_DEVICES_VALUE" "$JAX_CHECKPOINT_DIR" "$CONVERTED_WEIGHT_DIR" "$CHECKPOINT_BASE_DIR" "$ARTIFACTS_ROOT" "$RECONVERT_WEIGHTS" "$HF_HOME" "$HF_HUB_CACHE" "$XDG_CACHE_HOME" "$OPENPI_DATA_HOME" "$PYTORCH_CUDA_ALLOC_CONF"
+python - <<'PY' "$MANIFEST_JSON" "$RUN_ID" "$TEST_OPENPI_ROOT" "$OPENPI_DIR" "$CONFIG_NAME" "$EXP_NAME" "$BATCH_SIZE" "$NUM_TRAIN_STEPS" "$SAVE_INTERVAL" "$LOG_INTERVAL" "$VISION_ENCODER_IMAGE_MODE" "$CUDA_VISIBLE_DEVICES_VALUE" "$JAX_CHECKPOINT_DIR" "$CONVERTED_WEIGHT_DIR" "$CHECKPOINT_BASE_DIR" "$ARTIFACTS_ROOT" "$RECONVERT_WEIGHTS" "$HF_HOME" "$HF_HUB_CACHE" "$XDG_CACHE_HOME" "$OPENPI_DATA_HOME" "$PYTORCH_CUDA_ALLOC_CONF"
 import json
 import sys
 
@@ -189,6 +201,7 @@ import sys
     num_train_steps,
     save_interval,
     log_interval,
+    vision_encoder_image_mode,
     cuda_visible_devices,
     jax_checkpoint_dir,
     converted_weight_dir,
@@ -213,6 +226,7 @@ payload = {
     "num_train_steps": int(num_train_steps),
     "save_interval": int(save_interval),
     "log_interval": int(log_interval),
+    "vision_encoder_image_mode": vision_encoder_image_mode,
     "cuda_visible_devices": cuda_visible_devices,
     "jax_checkpoint_dir": jax_checkpoint_dir,
     "converted_weight_dir": converted_weight_dir,
@@ -372,6 +386,7 @@ print_section "Launching bounded PyTorch training"
       --num-train-steps "$NUM_TRAIN_STEPS" \
       --save-interval "$SAVE_INTERVAL" \
       --log-interval "$LOG_INTERVAL" \
+      --model.vision-encoder-image-mode "$VISION_ENCODER_IMAGE_MODE" \
       --checkpoint-base-dir "$CHECKPOINT_BASE_DIR" \
       --no-wandb-enabled \
       --overwrite
@@ -379,7 +394,7 @@ print_section "Launching bounded PyTorch training"
 
 LATEST_CHECKPOINT_DIR="$(find "$CHECKPOINT_RUN_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -n 1 || true)"
 
-python - <<'PY' "$RESULT_JSON" "$NORM_STATS_FILE" "$PATCH_LOG" "$CONVERT_LOG" "$TRAIN_LOG" "$CONVERTED_WEIGHT_DIR" "$CHECKPOINT_RUN_DIR" "$LATEST_CHECKPOINT_DIR"
+python - <<'PY' "$RESULT_JSON" "$NORM_STATS_FILE" "$PATCH_LOG" "$CONVERT_LOG" "$TRAIN_LOG" "$CONVERTED_WEIGHT_DIR" "$CHECKPOINT_RUN_DIR" "$LATEST_CHECKPOINT_DIR" "$VISION_ENCODER_IMAGE_MODE"
 import json
 import os
 import sys
@@ -393,6 +408,7 @@ import sys
     converted_weight_dir,
     checkpoint_run_dir,
     latest_checkpoint_dir,
+    vision_encoder_image_mode,
 ) = sys.argv[1:]
 
 payload = {
@@ -402,6 +418,7 @@ payload = {
     "patch_log": patch_log,
     "convert_log": convert_log,
     "train_log": train_log,
+    "vision_encoder_image_mode": vision_encoder_image_mode,
     "converted_weight_dir": converted_weight_dir,
     "converted_weight_exists": os.path.exists(os.path.join(converted_weight_dir, "model.safetensors")),
     "checkpoint_run_dir": checkpoint_run_dir,

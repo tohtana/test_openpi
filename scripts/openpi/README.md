@@ -35,11 +35,24 @@ PyTorch entrypoint:
 scripts/openpi/run_pi05_libero_finetune_example_pytorch.sh --exp-name my_run
 ```
 
+To switch between the baseline iterative path and the packed candidate path:
+
+```bash
+scripts/openpi/run_pi05_libero_finetune_example_pytorch.sh \
+  --exp-name my_run_iterative \
+  --vision-encoder-image-mode iterative
+
+scripts/openpi/run_pi05_libero_finetune_example_pytorch.sh \
+  --exp-name my_run_packed \
+  --vision-encoder-image-mode packed
+```
+
 Default PyTorch behavior:
 
 - ensures the local `.venv` has OpenPI's patched `transformers` files without reusing hardlinked cache files
 - resolves `gs://openpi-assets/checkpoints/pi05_base` through OpenPI's downloader and converts it to a PyTorch checkpoint if needed
 - runs a bounded `scripts/train_pytorch.py pi05_libero` example with `--batch-size 4 --num-train-steps 1`
+- keeps `iterative` as the default vision path and exposes `--vision-encoder-image-mode {iterative,packed}` for side-by-side measurement
 - writes logs and manifests under `tasks/openpi-scripted-libero-finetune-example-pytorch/<run-id>/`
 - writes checkpoints under `/mnt/local_storage/experiments/openpi_pytorch_checkpoints/pi05_libero/<exp-name>/`
 - sets `OPENPI_DATA_HOME=/mnt/local_storage/.cache/openpi` by default so OpenPI-downloaded weights and assets stay on local storage
