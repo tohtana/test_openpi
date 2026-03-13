@@ -42,6 +42,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cuda-visible-devices", default="0")
     parser.add_argument("--vision-encoder-image-mode", default="packed", choices=("iterative", "packed"))
     parser.add_argument("--precision", default="bfloat16", choices=("bfloat16", "float32"))
+    parser.add_argument("--module-step-kind", default="forward_only", choices=("forward_only", "train_like"))
     parser.add_argument("--start-batch-size", type=int, default=1)
     parser.add_argument("--max-batch-size", type=int)
     parser.add_argument("--num-train-steps", type=int, default=100)
@@ -198,6 +199,8 @@ def evaluate_batch(
         args.vision_encoder_image_mode,
         "--precision",
         args.precision,
+        "--module-step-kind",
+        args.module_step_kind,
         "--device",
         "cuda:0" if args.cuda_visible_devices else "cpu",
         "--output",
@@ -424,6 +427,7 @@ def main() -> int:
         "cuda_visible_devices": args.cuda_visible_devices,
         "vision_encoder_image_mode": args.vision_encoder_image_mode,
         "precision": args.precision,
+        "module_step_kind": args.module_step_kind,
         "num_train_steps": args.num_train_steps,
         "save_interval": args.save_interval,
         "log_interval": args.log_interval,
