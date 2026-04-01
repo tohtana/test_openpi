@@ -59,6 +59,27 @@ scripts/openpi/run_pi05_libero_finetune_example_pytorch.sh \
   --vision-encoder-image-mode packed
 ```
 
+To capture a TensorBoard-compatible PyTorch profiler trace with a 50-step warmup
+and 3 active steps:
+
+```bash
+scripts/openpi/run_pi05_libero_finetune_example_pytorch.sh \
+  --exp-name my_timeline_run \
+  --num-train-steps 53 \
+  --save-interval 53 \
+  --enable-torch-profiler \
+  --torch-profiler-warmup-steps 50 \
+  --torch-profiler-active-steps 3
+```
+
+The trace is written under
+`tasks/openpi-scripted-libero-finetune-example-pytorch/<run-id>/torch_profiler/`.
+To inspect it in TensorBoard:
+
+```bash
+tensorboard --logdir tasks/openpi-scripted-libero-finetune-example-pytorch/<run-id>/torch_profiler
+```
+
 Default PyTorch behavior:
 
 - ensures the local `.venv` has OpenPI's patched `transformers` files without reusing hardlinked cache files
@@ -66,6 +87,9 @@ Default PyTorch behavior:
 - runs a bounded `scripts/train_pytorch.py pi05_libero` example with `--batch-size 4 --num-train-steps 1`
 - keeps `iterative` as the default vision path and exposes `--vision-encoder-image-mode {iterative,packed}` for side-by-side measurement
 - exposes `--enable-profiling` and `--profiling-warmup-steps` for per-step timing breakdowns in either vision path
+- exposes `--enable-torch-profiler`, `--torch-profiler-warmup-steps`, and `--torch-profiler-active-steps` for bounded kernel timelines
+- requires `--num-train-steps >= --torch-profiler-warmup-steps + --torch-profiler-active-steps` when torch profiler tracing is enabled
 - writes logs and manifests under `tasks/openpi-scripted-libero-finetune-example-pytorch/<run-id>/`
+- writes torch profiler traces under `tasks/openpi-scripted-libero-finetune-example-pytorch/<run-id>/torch_profiler/`
 - writes checkpoints under `/mnt/local_storage/experiments/openpi_pytorch_checkpoints/pi05_libero/<exp-name>/`
 - sets `OPENPI_DATA_HOME=/mnt/local_storage/.cache/openpi` by default so OpenPI-downloaded weights and assets stay on local storage

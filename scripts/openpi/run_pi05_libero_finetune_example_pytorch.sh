@@ -19,6 +19,12 @@ Options:
   --enable-profiling              Enable per-step timing breakdown in train_pytorch.py.
   --profiling-warmup-steps <int>  Skip this many initial steps before collecting timings.
                                   Default: 1
+  --enable-torch-profiler         Enable torch.profiler tracing for a bounded kernel timeline.
+  --torch-profiler-warmup-steps <int>
+                                  Skip this many initial steps before collecting a trace.
+                                  Default: 50
+  --torch-profiler-active-steps <int>
+                                  Record this many steps after the warmup window. Default: 3
   --vision-encoder-image-mode <mode>
                                   Vision path: iterative or packed. Default: iterative
   --cuda-visible-devices <list>   CUDA_VISIBLE_DEVICES value. Default: 0
@@ -50,6 +56,9 @@ SAVE_INTERVAL="1"
 LOG_INTERVAL="1"
 ENABLE_PROFILING=0
 PROFILING_WARMUP_STEPS="1"
+ENABLE_TORCH_PROFILER=0
+TORCH_PROFILER_WARMUP_STEPS="50"
+TORCH_PROFILER_ACTIVE_STEPS="3"
 VISION_ENCODER_IMAGE_MODE="iterative"
 CUDA_VISIBLE_DEVICES_VALUE="0"
 JAX_CHECKPOINT_DIR="gs://openpi-assets/checkpoints/pi05_base"
@@ -92,6 +101,18 @@ while [[ "$#" -gt 0 ]]; do
       ;;
     --profiling-warmup-steps)
       PROFILING_WARMUP_STEPS="${2:-}"
+      shift 2
+      ;;
+    --enable-torch-profiler)
+      ENABLE_TORCH_PROFILER=1
+      shift
+      ;;
+    --torch-profiler-warmup-steps)
+      TORCH_PROFILER_WARMUP_STEPS="${2:-}"
+      shift 2
+      ;;
+    --torch-profiler-active-steps)
+      TORCH_PROFILER_ACTIVE_STEPS="${2:-}"
       shift 2
       ;;
     --vision-encoder-image-mode)
@@ -156,7 +177,7 @@ command -v uv >/dev/null || {
   exit 1
 }
 
-if ! [[ "$BATCH_SIZE" =~ ^[0-9]+$ && "$NUM_TRAIN_STEPS" =~ ^[0-9]+$ && "$SAVE_INTERVAL" =~ ^[0-9]+$ && "$LOG_INTERVAL" =~ ^[0-9]+$ && "$PROFILING_WARMUP_STEPS" =~ ^[0-9]+$ ]]; then
+if ! [[ "$BATCH_SIZE" =~ ^[0-9]+$ && "$NUM_TRAIN_STEPS" =~ ^[0-9]+$ && "$SAVE_INTERVAL" =~ ^[0-9]+$ && "$LOG_INTERVAL" =~ ^[0-9]+$ && "$PROFILING_WARMUP_STEPS" =~ ^[0-9]+$ && "$TORCH_PROFILER_WARMUP_STEPS" =~ ^[0-9]+$ && "$TORCH_PROFILER_ACTIVE_STEPS" =~ ^[0-9]+$ ]]; then
   echo "Numeric arguments must be non-negative integers" >&2
   exit 2
 fi
@@ -171,12 +192,23 @@ if [[ "$VISION_ENCODER_IMAGE_MODE" != "iterative" && "$VISION_ENCODER_IMAGE_MODE
   exit 2
 fi
 
+if (( ENABLE_TORCH_PROFILER )) && (( TORCH_PROFILER_ACTIVE_STEPS < 1 )); then
+  echo "--torch-profiler-active-steps must be at least 1 when torch profiler tracing is enabled" >&2
+  exit 2
+fi
+
+if (( ENABLE_TORCH_PROFILER )) && (( NUM_TRAIN_STEPS < TORCH_PROFILER_WARMUP_STEPS + TORCH_PROFILER_ACTIVE_STEPS )); then
+  echo "--num-train-steps must be at least --torch-profiler-warmup-steps + --torch-profiler-active-steps" >&2
+  exit 2
+fi
+
 RUN_DIR="$ARTIFACTS_ROOT/$RUN_ID"
 PATCH_LOG="$RUN_DIR/patch_transformers.log"
 CONVERT_LOG="$RUN_DIR/convert_checkpoint.log"
 TRAIN_LOG="$RUN_DIR/train_pytorch.log"
 MANIFEST_JSON="$RUN_DIR/run_manifest.json"
 RESULT_JSON="$RUN_DIR/result.json"
+TORCH_PROFILER_TRACE_DIR="$RUN_DIR/torch_profiler"
 NORM_STATS_FILE="$OPENPI_DIR/assets/pi05_libero/physical-intelligence/libero/norm_stats.json"
 CHECKPOINT_RUN_DIR="$CHECKPOINT_BASE_DIR/$CONFIG_NAME/$EXP_NAME"
 
@@ -199,7 +231,7 @@ export XDG_CACHE_HOME="$XDG_CACHE_HOME_VALUE"
 export OPENPI_DATA_HOME="$OPENPI_DATA_HOME_VALUE"
 export PYTORCH_CUDA_ALLOC_CONF="$PYTORCH_CUDA_ALLOC_CONF_VALUE"
 
-python - <<'PY' "$MANIFEST_JSON" "$RUN_ID" "$TEST_OPENPI_ROOT" "$OPENPI_DIR" "$CONFIG_NAME" "$EXP_NAME" "$BATCH_SIZE" "$NUM_TRAIN_STEPS" "$SAVE_INTERVAL" "$LOG_INTERVAL" "$ENABLE_PROFILING" "$PROFILING_WARMUP_STEPS" "$VISION_ENCODER_IMAGE_MODE" "$CUDA_VISIBLE_DEVICES_VALUE" "$JAX_CHECKPOINT_DIR" "$CONVERTED_WEIGHT_DIR" "$CHECKPOINT_BASE_DIR" "$ARTIFACTS_ROOT" "$RECONVERT_WEIGHTS" "$HF_HOME" "$HF_HUB_CACHE" "$XDG_CACHE_HOME" "$OPENPI_DATA_HOME" "$PYTORCH_CUDA_ALLOC_CONF"
+python - <<'PY' "$MANIFEST_JSON" "$RUN_ID" "$TEST_OPENPI_ROOT" "$OPENPI_DIR" "$CONFIG_NAME" "$EXP_NAME" "$BATCH_SIZE" "$NUM_TRAIN_STEPS" "$SAVE_INTERVAL" "$LOG_INTERVAL" "$ENABLE_PROFILING" "$PROFILING_WARMUP_STEPS" "$ENABLE_TORCH_PROFILER" "$TORCH_PROFILER_WARMUP_STEPS" "$TORCH_PROFILER_ACTIVE_STEPS" "$TORCH_PROFILER_TRACE_DIR" "$VISION_ENCODER_IMAGE_MODE" "$CUDA_VISIBLE_DEVICES_VALUE" "$JAX_CHECKPOINT_DIR" "$CONVERTED_WEIGHT_DIR" "$CHECKPOINT_BASE_DIR" "$ARTIFACTS_ROOT" "$RECONVERT_WEIGHTS" "$HF_HOME" "$HF_HUB_CACHE" "$XDG_CACHE_HOME" "$OPENPI_DATA_HOME" "$PYTORCH_CUDA_ALLOC_CONF"
 import json
 import sys
 
@@ -216,6 +248,10 @@ import sys
     log_interval,
     enable_profiling,
     profiling_warmup_steps,
+    enable_torch_profiler,
+    torch_profiler_warmup_steps,
+    torch_profiler_active_steps,
+    torch_profiler_trace_dir,
     vision_encoder_image_mode,
     cuda_visible_devices,
     jax_checkpoint_dir,
@@ -243,6 +279,10 @@ payload = {
     "log_interval": int(log_interval),
     "enable_profiling": enable_profiling == "1",
     "profiling_warmup_steps": int(profiling_warmup_steps),
+    "enable_torch_profiler": enable_torch_profiler == "1",
+    "torch_profiler_warmup_steps": int(torch_profiler_warmup_steps),
+    "torch_profiler_active_steps": int(torch_profiler_active_steps),
+    "torch_profiler_trace_dir": torch_profiler_trace_dir,
     "vision_encoder_image_mode": vision_encoder_image_mode,
     "cuda_visible_devices": cuda_visible_devices,
     "jax_checkpoint_dir": jax_checkpoint_dir,
@@ -356,9 +396,14 @@ ensure_converted_weights() {
 if (( DRY_RUN )); then
   print_section "Dry run only"
   printf 'run_dir=%s\n' "$RUN_DIR"
+  printf 'torch_profiler_trace_dir=%s\n' "$TORCH_PROFILER_TRACE_DIR"
   printf 'converted_weight_dir=%s\n' "$CONVERTED_WEIGHT_DIR"
   printf 'checkpoint_run_dir=%s\n' "$CHECKPOINT_RUN_DIR"
   exit 0
+fi
+
+if [[ -d "$TORCH_PROFILER_TRACE_DIR" ]]; then
+  rm -rf "$TORCH_PROFILER_TRACE_DIR"
 fi
 
 print_section "Preparing local PyTorch environment"
@@ -386,6 +431,15 @@ if (( ENABLE_PROFILING )); then
   TRAIN_ARGS+=(--enable-profiling --profiling-warmup-steps "$PROFILING_WARMUP_STEPS")
 fi
 
+if (( ENABLE_TORCH_PROFILER )); then
+  TRAIN_ARGS+=(
+    --enable-torch-profiler
+    --torch-profiler-warmup-steps "$TORCH_PROFILER_WARMUP_STEPS"
+    --torch-profiler-active-steps "$TORCH_PROFILER_ACTIVE_STEPS"
+    --torch-profiler-trace-dir "$TORCH_PROFILER_TRACE_DIR"
+  )
+fi
+
 (
   cd "$OPENPI_DIR"
   printf '$'
@@ -410,7 +464,7 @@ fi
 
 LATEST_CHECKPOINT_DIR="$(find "$CHECKPOINT_RUN_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -n 1 || true)"
 
-python - <<'PY' "$RESULT_JSON" "$NORM_STATS_FILE" "$PATCH_LOG" "$CONVERT_LOG" "$TRAIN_LOG" "$CONVERTED_WEIGHT_DIR" "$CHECKPOINT_RUN_DIR" "$LATEST_CHECKPOINT_DIR" "$ENABLE_PROFILING" "$PROFILING_WARMUP_STEPS" "$VISION_ENCODER_IMAGE_MODE"
+python - <<'PY' "$RESULT_JSON" "$NORM_STATS_FILE" "$PATCH_LOG" "$CONVERT_LOG" "$TRAIN_LOG" "$CONVERTED_WEIGHT_DIR" "$CHECKPOINT_RUN_DIR" "$LATEST_CHECKPOINT_DIR" "$ENABLE_PROFILING" "$PROFILING_WARMUP_STEPS" "$ENABLE_TORCH_PROFILER" "$TORCH_PROFILER_WARMUP_STEPS" "$TORCH_PROFILER_ACTIVE_STEPS" "$TORCH_PROFILER_TRACE_DIR" "$VISION_ENCODER_IMAGE_MODE"
 import json
 import os
 import sys
@@ -426,8 +480,18 @@ import sys
     latest_checkpoint_dir,
     enable_profiling,
     profiling_warmup_steps,
+    enable_torch_profiler,
+    torch_profiler_warmup_steps,
+    torch_profiler_active_steps,
+    torch_profiler_trace_dir,
     vision_encoder_image_mode,
 ) = sys.argv[1:]
+
+trace_files = []
+if os.path.isdir(torch_profiler_trace_dir):
+    for root, _, files in os.walk(torch_profiler_trace_dir):
+        for name in sorted(files):
+            trace_files.append(os.path.relpath(os.path.join(root, name), torch_profiler_trace_dir))
 
 payload = {
     "schema_version": 1,
@@ -438,6 +502,12 @@ payload = {
     "train_log": train_log,
     "enable_profiling": enable_profiling == "1",
     "profiling_warmup_steps": int(profiling_warmup_steps),
+    "enable_torch_profiler": enable_torch_profiler == "1",
+    "torch_profiler_warmup_steps": int(torch_profiler_warmup_steps),
+    "torch_profiler_active_steps": int(torch_profiler_active_steps),
+    "torch_profiler_trace_dir": torch_profiler_trace_dir,
+    "torch_profiler_trace_dir_exists": os.path.isdir(torch_profiler_trace_dir),
+    "torch_profiler_trace_files": trace_files,
     "vision_encoder_image_mode": vision_encoder_image_mode,
     "converted_weight_dir": converted_weight_dir,
     "converted_weight_exists": os.path.exists(os.path.join(converted_weight_dir, "model.safetensors")),
@@ -452,6 +522,7 @@ PY
 
 print_section "Completed"
 printf 'Artifacts: %s\n' "$RUN_DIR"
+printf 'Torch profiler trace dir: %s\n' "$TORCH_PROFILER_TRACE_DIR"
 printf 'Converted weights: %s\n' "$CONVERTED_WEIGHT_DIR"
 printf 'Checkpoint run dir: %s\n' "$CHECKPOINT_RUN_DIR"
 if [[ -n "$LATEST_CHECKPOINT_DIR" ]]; then
